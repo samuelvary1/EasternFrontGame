@@ -99,7 +99,10 @@ export default function MainMenuScreen({ navigation }) {
     return (
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={styles.difficultyContent}>
-          <Text style={styles.title}>SELECT DIFFICULTY</Text>
+          <View style={styles.titleContainer}>
+            <Text style={styles.difficultyTitle}>SELECT</Text>
+            <Text style={styles.difficultyTitle}>DIFFICULTY</Text>
+          </View>
 
           {Object.values(DIFFICULTY_LEVELS).map(level => (
             <TouchableOpacity
@@ -222,6 +225,17 @@ const styles = StyleSheet.create({
     marginBottom: 60,
     textAlign: 'center',
     letterSpacing: 2,
+  },
+  difficultyTitle: {
+    fontSize: 48,
+    fontWeight: '900',
+    color: '#3b82f6',
+    letterSpacing: 6,
+    textAlign: 'center',
+    textShadowColor: 'rgba(59, 130, 246, 0.5)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 20,
+    lineHeight: 56,
   },
   buttonContainer: {
     width: '100%',
