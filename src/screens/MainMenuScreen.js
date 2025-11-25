@@ -138,7 +138,10 @@ export default function MainMenuScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>EASTERN FRONT</Text>
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>EASTERN</Text>
+          <Text style={styles.title}>FRONT</Text>
+        </View>
         <Text style={styles.subtitle}>A Modern Operational Wargame</Text>
         <Text style={styles.description}>Ukraine 2022</Text>
 
@@ -190,23 +193,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
+  titleContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
   title: {
-    fontSize: 42,
+    fontSize: 56,
     fontWeight: '900',
     color: '#3b82f6',
-    marginBottom: 10,
-    letterSpacing: 2,
+    letterSpacing: 8,
+    textAlign: 'center',
+    textShadowColor: 'rgba(59, 130, 246, 0.5)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 20,
+    lineHeight: 64,
   },
   subtitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#9ca3af',
-    marginBottom: 5,
+    marginBottom: 8,
+    textAlign: 'center',
+    letterSpacing: 1,
   },
   description: {
     fontSize: 16,
     color: '#6b7280',
-    marginBottom: 50,
+    marginBottom: 60,
+    textAlign: 'center',
+    letterSpacing: 2,
   },
   buttonContainer: {
     width: '100%',
