@@ -9,72 +9,145 @@ export default function LogEntry({ message, index }) {
   const isEnemy = message.includes('[ENEMY]');
   const isCritical = message.includes('CRITICAL') || message.includes('DEFEAT') || message.includes('VICTORY');
   const isHeader = message.startsWith('===');
+  
+  // Skip technical/duplicate entries
+  if (message.includes('[COMBAT_START]') || 
+      message.includes('[COMBAT_END]') || 
+      message.includes('[ATTACKER_BRIGADE]') ||
+      message.includes('[DEFENDER_INFO]') ||
+      message.includes('[COMBAT_RESULTS]') ||
+      message.includes('rolls') ||
+      message.includes('Roll ') ||
+      message.includes('Defense Ratio') ||
+      message.includes('Dice result')) {
+    return null;
+  }
 
-  const getStyle = () => {
-    if (isHeader) return styles.header;
-    if (isCritical) return styles.critical;
-    if (isPlayer) return styles.player;
-    if (isEnemy) return styles.enemy;
-    if (isEvent) return styles.event;
-    return styles.normal;
+  const getIcon = () => {
+    if (isCritical) return '⚠️';
+    if (isPlayer) return '🔵';
+    if (isEnemy) return '🔴';
+    if (isEvent) return '⭐';
+    return '•';
   };
 
-  const displayMessage = message.replace('[PLAYER]', '').replace('[ENEMY]', '').replace('[EVENT]', '').trim();
+  const getContainerStyle = () => {
+    if (isHeader) return styles.headerContainer;
+    if (isCritical) return styles.criticalContainer;
+    if (isPlayer) return styles.playerContainer;
+    if (isEnemy) return styles.enemyContainer;
+    if (isEvent) return styles.eventContainer;
+    return styles.normalContainer;
+  };
+
+  const getTextStyle = () => {
+    if (isHeader) return styles.headerText;
+    if (isCritical) return styles.criticalText;
+    return styles.normalText;
+  };
+
+  const displayMessage = message
+    .replace('[PLAYER]', '')
+    .replace('[ENEMY]', '')
+    .replace('[EVENT]', '')
+    .replace(/^===\s*|\s*===$/g, '')
+    .trim();
+  
+  if (!displayMessage) return null;
 
   return (
-    <View style={styles.container}>
-      <Text style={getStyle()}>{displayMessage}</Text>
+    <View style={getContainerStyle()}>
+      {!isHeader && <Text style={styles.icon}>{getIcon()}</Text>}
+      <Text style={getTextStyle()}>{displayMessage}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    paddingVertical: 4,
+  normalContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 6,
     paddingHorizontal: 12,
+    gap: 8,
   },
-  normal: {
-    fontSize: 14,
-    color: '#d1d5db',
-    lineHeight: 20,
+  playerContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+    borderLeftWidth: 4,
+    borderLeftColor: '#3b82f6',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginVertical: 4,
+    borderRadius: 6,
+    gap: 8,
   },
-  event: {
-    fontSize: 14,
-    color: '#fbbf24',
-    lineHeight: 20,
-    fontWeight: '500',
+  enemyContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderLeftWidth: 4,
+    borderLeftColor: '#ef4444',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginVertical: 4,
+    borderRadius: 6,
+    gap: 8,
   },
-  player: {
-    fontSize: 14,
-    color: '#60a5fa',
-    lineHeight: 20,
-    fontWeight: '600',
-    backgroundColor: 'rgba(96, 165, 250, 0.1)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
+  eventContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(251, 191, 36, 0.2)',
+    borderWidth: 2,
+    borderColor: '#fbbf24',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    marginVertical: 6,
+    borderRadius: 8,
+    gap: 8,
   },
-  enemy: {
-    fontSize: 14,
-    color: '#fb923c',
-    lineHeight: 20,
-    fontWeight: '600',
-    backgroundColor: 'rgba(251, 146, 60, 0.1)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
+  criticalContainer: {
+    backgroundColor: 'rgba(239, 68, 68, 0.25)',
+    borderWidth: 3,
+    borderColor: '#ef4444',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    marginVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
   },
-  critical: {
-    fontSize: 15,
-    color: '#f87171',
-    lineHeight: 22,
-    fontWeight: '700',
+  headerContainer: {
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    marginTop: 12,
+    marginBottom: 6,
+    backgroundColor: '#1f2937',
+    borderBottomWidth: 2,
+    borderBottomColor: '#60a5fa',
   },
-  header: {
+  icon: {
     fontSize: 16,
+    marginTop: 2,
+  },
+  normalText: {
+    fontSize: 15,
+    color: '#d1d5db',
+    lineHeight: 22,
+    flex: 1,
+  },
+  criticalText: {
+    fontSize: 18,
+    color: '#fca5a5',
+    lineHeight: 26,
+    fontWeight: '800',
+    textAlign: 'center',
+    textTransform: 'uppercase',
+  },
+  headerText: {
+    fontSize: 17,
     color: '#93c5fd',
     lineHeight: 24,
     fontWeight: '700',
-    marginTop: 8,
   },
 });

@@ -10,6 +10,8 @@ export default function CombatLogEntry({ messages }) {
   let attackerName = 'Attacker';
   let defenderName = 'Defender';
   let outcome = '';
+  let casualties = null;
+  let moraleChange = null;
   
   const startMatch = messages[0]?.match(/\[COMBAT_START\]([^|]+)\|([^\]]+)\[\/COMBAT_START\]/);
   if (startMatch) {
@@ -19,42 +21,65 @@ export default function CombatLogEntry({ messages }) {
   
   const endMatch = messages[messages.length - 1]?.match(/\[COMBAT_END\]([^[]+)\[\/COMBAT_END\]/);
   if (endMatch) {
-    outcome = endMatch[1];
+    outcome = endMatch[1].trim();
   }
+  
+  // Extract casualties and morale from messages
+  messages.forEach(msg => {
+    if (msg.includes('Casualties:')) {
+      const match = msg.match(/Casualties: (.+)/);
+      if (match) casualties = match[1];
+    }
+    if (msg.includes('Morale change:')) {
+      const match = msg.match(/Morale change: (.+)/);
+      if (match) moraleChange = match[1];
+    }
+  });
 
-  // Filter out marker lines and format display messages
-  const displayMessages = messages
-    .filter(msg => !msg.includes('[COMBAT_START]') && !msg.includes('[COMBAT_END]'))
-    .map(msg => msg.replace(/^===\s*COMBAT:\s*/i, '').trim());
-
-  const getOutcomeStyle = () => {
-    if (outcome.includes('VICTORY')) return styles.victory;
-    if (outcome.includes('DEFEAT')) return styles.defeat;
-    if (outcome.includes('STALEMATE')) return styles.stalemate;
-    return styles.setback;
+  const getOutcomeColor = () => {
+    if (outcome.includes('VICTORY') || outcome.includes('STRONG DEFENSE')) return '#10b981';
+    if (outcome.includes('DEFEAT') || outcome.includes('ROUTED')) return '#ef4444';
+    if (outcome.includes('STALEMATE')) return '#f59e0b';
+    return '#f97316';
+  };
+  
+  const getOutcomeIcon = () => {
+    if (outcome.includes('VICTORY') || outcome.includes('STRONG DEFENSE')) return '✓';
+    if (outcome.includes('DEFEAT') || outcome.includes('ROUTED')) return '✗';
+    return '=';
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { borderColor: getOutcomeColor() }]}>
       <View style={styles.header}>
         <Text style={styles.headerText}>
           <Text style={styles.attackerName}>{attackerName}</Text>
-          {' vs '}
+          {' ⚔️ '}
           <Text style={styles.defenderName}>{defenderName}</Text>
         </Text>
       </View>
 
       <View style={styles.content}>
-        {displayMessages.map((msg, index) => (
-          <Text key={index} style={styles.message}>
-            {msg}
-          </Text>
-        ))}
+        {casualties && (
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>💥 Casualties</Text>
+            <Text style={styles.infoValue}>{casualties}</Text>
+          </View>
+        )}
+        
+        {moraleChange && (
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>🎯 Morale</Text>
+            <Text style={styles.infoValue}>{moraleChange}</Text>
+          </View>
+        )}
       </View>
 
       {outcome && (
-        <View style={[styles.outcomeContainer, getOutcomeStyle()]}>
-          <Text style={styles.outcomeText}>{outcome}</Text>
+        <View style={[styles.outcomeContainer, { backgroundColor: getOutcomeColor() + '30', borderTopColor: getOutcomeColor() }]}>
+          <Text style={[styles.outcomeText, { color: getOutcomeColor() }]}>
+            {getOutcomeIcon()} {outcome.toUpperCase()}
+          </Text>
         </View>
       )}
     </View>
@@ -63,22 +88,19 @@ export default function CombatLogEntry({ messages }) {
 
 const styles = StyleSheet.create({
   container: {
-    borderWidth: 2,
-    borderColor: '#60a5fa',
-    borderRadius: 8,
+    borderWidth: 3,
+    borderRadius: 12,
     backgroundColor: '#1f2937',
-    marginVertical: 8,
+    marginVertical: 10,
     overflow: 'hidden',
   },
   header: {
     backgroundColor: '#374151',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#60a5fa',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
   headerText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     color: '#f3f4f6',
     textAlign: 'center',
@@ -90,40 +112,37 @@ const styles = StyleSheet.create({
     color: '#ef4444',
   },
   content: {
-    padding: 12,
+    padding: 16,
+    gap: 10,
   },
-  message: {
-    fontSize: 13,
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#111827',
+    borderRadius: 6,
+  },
+  infoLabel: {
+    fontSize: 15,
+    color: '#9ca3af',
+    fontWeight: '600',
+  },
+  infoValue: {
+    fontSize: 15,
     color: '#e5e7eb',
-    marginVertical: 2,
-    lineHeight: 18,
+    fontWeight: '700',
   },
   outcomeContainer: {
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#374151',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderTopWidth: 3,
     alignItems: 'center',
   },
   outcomeText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '900',
-    letterSpacing: 1,
-  },
-  victory: {
-    backgroundColor: '#064e3b',
-    borderTopColor: '#10b981',
-  },
-  defeat: {
-    backgroundColor: '#7f1d1d',
-    borderTopColor: '#ef4444',
-  },
-  stalemate: {
-    backgroundColor: '#78350f',
-    borderTopColor: '#f59e0b',
-  },
-  setback: {
-    backgroundColor: '#7c2d12',
-    borderTopColor: '#f97316',
+    letterSpacing: 1.5,
   },
 });

@@ -21,7 +21,7 @@ const getWeatherDisplay = (weather, t) => {
 };
 
 export default function MissionControlScreen({ navigation }) {
-  const { gameState, endTurn, saveGame } = useGameEngine();
+  const { gameState, saveGame } = useGameEngine();
   const { t } = useLanguage();
 
   if (!gameState.gameStarted) {
@@ -35,11 +35,6 @@ export default function MissionControlScreen({ navigation }) {
       </SafeAreaView>
     );
   }
-
-  const handleEndTurn = () => {
-    endTurn();
-    navigation.navigate('TurnSummary');
-  };
 
   const handleSave = async () => {
     await saveGame();
@@ -129,12 +124,6 @@ export default function MissionControlScreen({ navigation }) {
             title={t('missionControl.saveGame')}
             onPress={handleSave}
             variant="secondary"
-            style={styles.footerButton}
-          />
-          <ActionButton
-            title={t('missionControl.endTurn')}
-            onPress={handleEndTurn}
-            variant="primary"
             style={styles.footerButton}
           />
         </View>

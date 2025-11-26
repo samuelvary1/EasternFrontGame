@@ -315,7 +315,12 @@ export function GameEngineProvider({ children }) {
         victory,
       };
     });
-  }, []);
+    
+    // Auto-save after turn ends
+    setTimeout(() => {
+      saveGame();
+    }, 100);
+  }, [saveGame]);
 
   const value = {
     gameState,

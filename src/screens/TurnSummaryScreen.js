@@ -14,11 +14,26 @@ export default function TurnSummaryScreen({ navigation }) {
   const [currentCombatIndex, setCurrentCombatIndex] = useState(0);
   const [combatEvents, setCombatEvents] = useState([]);
   const [animationsPlayed, setAnimationsPlayed] = useState(new Set());
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   useEffect(() => {
-    // Extract combat events from the latest turn log
-    const latestLog = gameState.eventLog.slice(-50);
-    console.log('Latest log entries:', latestLog);
+    // Only run initialization once per mount
+    if (hasInitialized) return;
+    setHasInitialized(true);
+    
+    // Extract combat events from the CURRENT turn only
+    const currentTurnMarker = `=== Turn ${gameState.turn} Resolution ===`;
+    const currentTurnStartIndex = gameState.eventLog.findIndex(entry => entry.includes(currentTurnMarker));
+    
+    // If we can't find the current turn marker, don't show any animations
+    if (currentTurnStartIndex === -1) {
+      console.log('No current turn marker found');
+      return;
+    }
+    
+    // Only look at logs from the current turn onwards
+    const latestLog = gameState.eventLog.slice(currentTurnStartIndex);
+    console.log('Current turn log entries:', latestLog);
     const combats = [];
     
     for (let i = 0; i < latestLog.length; i++) {
@@ -151,18 +166,15 @@ export default function TurnSummaryScreen({ navigation }) {
     console.log('Combats found:', combats.length);
     console.log('Combat details:', JSON.stringify(combats, null, 2));
     
-    // Start showing combat animations if any exist and haven't been played yet
-    const turnKey = `turn-${gameState.turn}`;
-    if (combats.length > 0 && !animationsPlayed.has(turnKey)) {
+    // Start showing combat animations if any exist
+    if (combats.length > 0) {
       setCurrentCombatIndex(0);
-      // Show dice animation
+      // Show dice animation after a short delay
       setTimeout(() => {
         setDiceAnimationVisible(true);
-        // Mark this turn's animations as played
-        setAnimationsPlayed(prev => new Set([...prev, turnKey]));
       }, 500);
     }
-  }, [gameState.turn]);
+  }, [hasInitialized]);
 
   const handleCombatComplete = () => {
     // Dice animation completes - hide it
