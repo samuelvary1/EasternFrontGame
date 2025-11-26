@@ -13,21 +13,33 @@ export default function TurnSummaryScreen({ navigation }) {
   const [diceAnimationVisible, setDiceAnimationVisible] = useState(false);
   const [currentCombatIndex, setCurrentCombatIndex] = useState(0);
   const [combatEvents, setCombatEvents] = useState([]);
-  const [animationsPlayed, setAnimationsPlayed] = useState(new Set());
-  const [hasInitialized, setHasInitialized] = useState(false);
+  const scrollViewRef = React.useRef(null);
 
   useEffect(() => {
-    // Only run initialization once per mount
-    if (hasInitialized) return;
-    setHasInitialized(true);
+    console.log('=== TurnSummaryScreen useEffect running ===');
+    console.log('Current turn:', gameState.turn);
+    console.log('Event log length:', gameState.eventLog.length);
+    console.log('Last 5 log entries:', gameState.eventLog.slice(-5));
     
     // Extract combat events from the CURRENT turn only
-    const currentTurnMarker = `=== Turn ${gameState.turn} Resolution ===`;
-    const currentTurnStartIndex = gameState.eventLog.findIndex(entry => entry.includes(currentTurnMarker));
+    // The turn marker has a newline prefix, so search for the core text
+    const currentTurnMarker = `Turn ${gameState.turn - 1} Resolution`;
+    
+    // Find the LAST occurrence of the turn marker (most recent)
+    let currentTurnStartIndex = -1;
+    for (let i = gameState.eventLog.length - 1; i >= 0; i--) {
+      if (gameState.eventLog[i].includes(currentTurnMarker)) {
+        currentTurnStartIndex = i;
+        break;
+      }
+    }
+    
+    console.log('Looking for marker:', currentTurnMarker);
+    console.log('Marker found at index:', currentTurnStartIndex);
     
     // If we can't find the current turn marker, don't show any animations
     if (currentTurnStartIndex === -1) {
-      console.log('No current turn marker found');
+      console.log('No current turn marker found - no animations will play');
       return;
     }
     
@@ -174,11 +186,16 @@ export default function TurnSummaryScreen({ navigation }) {
         setDiceAnimationVisible(true);
       }, 500);
     }
-  }, [hasInitialized]);
+  }, [gameState.turn, gameState.eventLog.length]);
 
   const handleCombatComplete = () => {
     // Dice animation completes - hide it
     setDiceAnimationVisible(false);
+    
+    // Scroll to top when animation completes
+    setTimeout(() => {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+    }, 100);
     
     // Show next combat after a delay
     if (currentCombatIndex < combatEvents.length - 1) {
@@ -229,8 +246,22 @@ export default function TurnSummaryScreen({ navigation }) {
     }
   }
   
-  // Reverse back to show most recent first
-  groupedLog.reverse();
+  // Sort by importance (highest priority first)
+  const getPriority = (item) => {
+    if (item.type === 'combat') return 1; // Combat results - highest priority
+    
+    const msg = item.message || '';
+    if (msg.includes('VICTORY') || msg.includes('DEFEAT')) return 0; // Game outcome - absolute top
+    if (msg.includes('[EVENT]')) return 2; // Events
+    if (msg.includes('is now under')) return 3; // Territory changes
+    if (msg.includes('[PLAYER]')) return 4; // Player actions
+    if (msg.includes('[ENEMY]')) return 5; // Enemy actions
+    if (msg.includes('Weather:')) return 7; // Weather
+    if (msg.startsWith('===')) return 8; // Turn headers
+    return 6; // Everything else
+  };
+  
+  groupedLog.sort((a, b) => getPriority(a) - getPriority(b));
 
   return (
     <SafeAreaView style={styles.container}>
@@ -269,7 +300,11 @@ export default function TurnSummaryScreen({ navigation }) {
         )}
       </View>
 
-      <ScrollView style={styles.logContainer} contentContainerStyle={styles.logContent}>
+      <ScrollView 
+        ref={scrollViewRef}
+        style={styles.logContainer} 
+        contentContainerStyle={styles.logContent}
+      >
         {groupedLog.map((item, index) => {
           if (item.type === 'combat') {
             return <CombatLogEntry key={`combat-${index}`} messages={item.messages} />;
