@@ -5,6 +5,7 @@ import { View, Text, StyleSheet, ScrollView, SafeAreaView, Alert, TouchableOpaci
 import { useGameEngine } from '../engine/gameEngine';
 import ActionButton from '../components/ActionButton';
 import BrigadeCard from '../components/BrigadeCard';
+import FloatingEndTurnButton from '../components/FloatingEndTurnButton';
 
 export default function RegionDetailScreen({ route, navigation }) {
   const { regionId } = route.params;
@@ -306,6 +307,7 @@ export default function RegionDetailScreen({ route, navigation }) {
           variant="secondary"
         />
       </ScrollView>
+      <FloatingEndTurnButton />
     </SafeAreaView>
   );
 }

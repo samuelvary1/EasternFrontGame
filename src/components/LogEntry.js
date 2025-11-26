@@ -6,6 +6,7 @@ import { View, Text, StyleSheet } from 'react-native';
 export default function LogEntry({ message, index }) {
   const isEvent = message.includes('[EVENT]');
   const isPlayer = message.includes('[PLAYER]');
+  const isEnemy = message.includes('[ENEMY]');
   const isCritical = message.includes('CRITICAL') || message.includes('DEFEAT') || message.includes('VICTORY');
   const isHeader = message.startsWith('===');
 
@@ -13,11 +14,12 @@ export default function LogEntry({ message, index }) {
     if (isHeader) return styles.header;
     if (isCritical) return styles.critical;
     if (isPlayer) return styles.player;
+    if (isEnemy) return styles.enemy;
     if (isEvent) return styles.event;
     return styles.normal;
   };
 
-  const displayMessage = message.replace('[PLAYER]', '').trim();
+  const displayMessage = message.replace('[PLAYER]', '').replace('[ENEMY]', '').replace('[EVENT]', '').trim();
 
   return (
     <View style={styles.container}>
@@ -48,6 +50,16 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontWeight: '600',
     backgroundColor: 'rgba(96, 165, 250, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  enemy: {
+    fontSize: 14,
+    color: '#fb923c',
+    lineHeight: 20,
+    fontWeight: '600',
+    backgroundColor: 'rgba(251, 146, 60, 0.1)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,

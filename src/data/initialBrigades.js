@@ -13,6 +13,7 @@ export const initialBrigades = [
     droneCount: 2,
     stance: 'mobile defense',
     experience: 70,
+    card: '🂡', // Ace of Spades
   },
   {
     id: 'brigade_2',
@@ -25,6 +26,7 @@ export const initialBrigades = [
     droneCount: 1,
     stance: 'hold',
     experience: 75,
+    card: '🂮', // King of Spades
   },
   {
     id: 'brigade_3',
@@ -37,6 +39,7 @@ export const initialBrigades = [
     droneCount: 0,
     stance: 'hold',
     experience: 50,
+    card: '🂭', // Queen of Spades
   },
   
   // NORTHERN DEFENSE
@@ -115,6 +118,7 @@ export const initialBrigades = [
     droneCount: 1,
     stance: 'mobile defense',
     experience: 60,
+    card: '🃋', // Jack of Hearts
   },
   {
     id: 'brigade_10',
@@ -127,6 +131,7 @@ export const initialBrigades = [
     droneCount: 2,
     stance: 'hold',
     experience: 75,
+    card: '🃊', // 10 of Hearts
   },
   
   // WESTERN RESERVE
@@ -141,6 +146,7 @@ export const initialBrigades = [
     droneCount: 2,
     stance: 'mobile defense',
     experience: 70,
+    card: '🃑', // Ace of Diamonds
   },
   {
     id: 'brigade_12',
@@ -153,5 +159,6 @@ export const initialBrigades = [
     droneCount: 1,
     stance: 'mobile defense',
     experience: 65,
+    card: '🃞', // King of Diamonds
   },
 ];

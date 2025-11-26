@@ -4,6 +4,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Alert } from 'react-native';
 import { useGameEngine } from '../engine/gameEngine';
 import ActionButton from '../components/ActionButton';
+import FloatingEndTurnButton from '../components/FloatingEndTurnButton';
 
 export default function PendingOrdersScreen({ navigation }) {
   const { gameState, cancelOrder } = useGameEngine();
@@ -144,6 +145,7 @@ export default function PendingOrdersScreen({ navigation }) {
           variant="secondary"
         />
       </View>
+      <FloatingEndTurnButton />
     </SafeAreaView>
   );
 }

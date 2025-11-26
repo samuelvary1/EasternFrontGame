@@ -9,7 +9,7 @@ import { DIFFICULTY_LEVELS } from '../config/difficultySettings';
 import ActionButton from '../components/ActionButton';
 
 export default function MainMenuScreen({ navigation }) {
-  const { startNewGame, loadGame } = useGameEngine();
+  const { startNewGame, loadGame, gameState } = useGameEngine();
   const { language, changeLanguage, t } = useLanguage();
   const [saveExists, setSaveExists] = useState(false);
   const [showFactionSelect, setShowFactionSelect] = useState(false);
@@ -38,6 +38,10 @@ export default function MainMenuScreen({ navigation }) {
 
   const handleStartWithDifficulty = () => {
     startNewGame(selectedDifficulty, selectedFaction);
+    navigation.navigate('Campaign');
+  };
+
+  const handleResume = () => {
     navigation.navigate('Campaign');
   };
 
@@ -182,10 +186,18 @@ export default function MainMenuScreen({ navigation }) {
         <Text style={styles.description}>{t('mainMenu.description')}</Text>
 
         <View style={styles.buttonContainer}>
+          {gameState.gameStarted && (
+            <ActionButton
+              title={t('mainMenu.resume')}
+              onPress={handleResume}
+              variant="primary"
+            />
+          )}
+
           <ActionButton
             title={t('mainMenu.newCampaign')}
             onPress={handleNewGame}
-            variant="primary"
+            variant={gameState.gameStarted ? "secondary" : "primary"}
           />
 
           <ActionButton

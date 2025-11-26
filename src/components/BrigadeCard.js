@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import PlayingCard from './PlayingCard';
 
 export default function BrigadeCard({ brigade, onPress }) {
   const getStrengthColor = (strength) => {
@@ -25,8 +26,13 @@ export default function BrigadeCard({ brigade, onPress }) {
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.header}>
-        <Text style={styles.name}>{brigade.name}</Text>
-        <Text style={styles.type}>{brigade.type.toUpperCase()}</Text>
+        {brigade.card && (
+          <PlayingCard card={brigade.card} size="medium" />
+        )}
+        <View style={styles.headerText}>
+          <Text style={styles.name}>{brigade.name}</Text>
+          <Text style={styles.type}>{brigade.type.toUpperCase()}</Text>
+        </View>
       </View>
 
       <View style={styles.stats}>
@@ -86,6 +92,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
+    gap: 12,
+  },
+  headerText: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   name: {
     fontSize: 16,

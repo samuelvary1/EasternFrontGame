@@ -101,11 +101,12 @@ function decideRegionAction(region, allRegions, brigades, weather, difficulty, a
     case 'attack':
       if (enemyNeighbors.length > 0) {
         const target = enemyNeighbors[Math.floor(Math.random() * enemyNeighbors.length)];
+        const attackStrength = Math.floor(strength);
         return {
           type: 'attack',
           target: target.id,
           intensity: strength,
-          message: `Enemy forces from ${region.name} are attacking ${target.name}.`,
+          message: `[ENEMY] Enemy forces from ${region.name} launch attack on ${target.name}. (Assault strength: ${attackStrength})`,
         };
       }
       return null;
@@ -113,11 +114,12 @@ function decideRegionAction(region, allRegions, brigades, weather, difficulty, a
     case 'reinforce':
       if (friendlyNeighbors.length > 0) {
         const target = friendlyNeighbors[Math.floor(Math.random() * friendlyNeighbors.length)];
+        const reinforcementSize = Math.floor(strength * 0.3);
         return {
           type: 'reinforce',
           target: target.id,
-          intensity: Math.floor(strength * 0.3),
-          message: `Enemy forces are reinforcing positions in ${target.name}.`,
+          intensity: reinforcementSize,
+          message: `[ENEMY] Enemy reinforcing ${target.name}. (+${reinforcementSize} enemy strength)`,
         };
       }
       return null;
@@ -171,22 +173,30 @@ export function applyAIAction(action, regions, brigades) {
           // Enemy breakthrough
           targetRegion.control = 'russia';
           targetRegion.enemyStrengthEstimate = Math.floor(action.intensity * 0.6);
-          messages.push(`CRITICAL: Enemy forces have seized ${targetRegion.name}!`);
+          messages.push(`[ENEMY] CRITICAL: Enemy forces have seized ${targetRegion.name}!`);
           
           // Damage defending brigades
+          let totalCasualties = 0;
           defendingBrigades.forEach(brigade => {
-            brigade.strength = Math.max(0, brigade.strength - Math.floor(20 + Math.random() * 15));
+            const casualty = Math.floor(20 + Math.random() * 15);
+            totalCasualties += casualty;
+            brigade.strength = Math.max(0, brigade.strength - casualty);
             brigade.morale = Math.max(0, brigade.morale - 15);
           });
+          messages.push(`[ENEMY] Your forces suffered heavy losses. (-${totalCasualties} total strength, -15 morale)`);
         } else {
           // Attack repelled
           targetRegion.enemyStrengthEstimate = Math.min(100, targetRegion.enemyStrengthEstimate + Math.floor(action.intensity * 0.2));
-          messages.push(`Enemy attack on ${targetRegion.name} was repelled.`);
+          messages.push(`[ENEMY] Enemy attack on ${targetRegion.name} repelled, but at a cost.`);
           
+          let totalCasualties = 0;
           defendingBrigades.forEach(brigade => {
-            brigade.strength = Math.max(0, brigade.strength - Math.floor(8 + Math.random() * 10));
+            const casualty = Math.floor(8 + Math.random() * 10);
+            totalCasualties += casualty;
+            brigade.strength = Math.max(0, brigade.strength - casualty);
             brigade.morale = Math.max(0, brigade.morale - 5);
           });
+          messages.push(`[ENEMY] Defensive casualties taken. (-${totalCasualties} total strength, -5 morale)`);
         }
       }
       break;

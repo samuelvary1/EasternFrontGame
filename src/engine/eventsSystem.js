@@ -1,22 +1,54 @@
 // Events system - triggers and applies random events
 
-import { eventsCatalog } from '../data/eventsCatalog';
+import { ukrainianEvents, russianEvents, neutralEvents } from '../data/eventsCatalog';
 
-export function triggerRandomEvents(trigger, brigades, regions) {
-  const eligibleEvents = eventsCatalog.filter(e => e.trigger === trigger);
+export function triggerRandomEvents(trigger, brigades, regions, playerFaction = 'ukraine') {
+  // Select appropriate event pool based on player faction
+  const playerEvents = playerFaction === 'ukraine' ? ukrainianEvents : russianEvents;
+  const enemyEvents = playerFaction === 'ukraine' ? russianEvents : ukrainianEvents;
+  
+  // Get eligible events from all pools
+  const eligiblePlayerEvents = playerEvents.filter(e => e.trigger === trigger);
+  const eligibleEnemyEvents = enemyEvents.filter(e => e.trigger === trigger);
+  const eligibleNeutralEvents = neutralEvents.filter(e => e.trigger === trigger);
+  
   const triggeredEvents = [];
   const messages = [];
   
   let updatedBrigades = [...brigades];
   let updatedRegions = [...regions];
   
-  eligibleEvents.forEach(event => {
+  // Process player-favorable events
+  eligiblePlayerEvents.forEach(event => {
     if (Math.random() < event.probability) {
       triggeredEvents.push(event);
       messages.push(`[EVENT] ${event.name}: ${event.description}`);
       
-      // Apply event effects
-      const result = applyEventEffect(event, updatedBrigades, updatedRegions);
+      const result = applyEventEffect(event, updatedBrigades, updatedRegions, true);
+      updatedBrigades = result.brigades;
+      updatedRegions = result.regions;
+    }
+  });
+  
+  // Process enemy events (affect player negatively)
+  eligibleEnemyEvents.forEach(event => {
+    if (Math.random() < event.probability) {
+      triggeredEvents.push(event);
+      messages.push(`[ENEMY] ${event.name}: ${event.description}`);
+      
+      const result = applyEventEffect(event, updatedBrigades, updatedRegions, false);
+      updatedBrigades = result.brigades;
+      updatedRegions = result.regions;
+    }
+  });
+  
+  // Process neutral events (affect both sides or environment)
+  eligibleNeutralEvents.forEach(event => {
+    if (Math.random() < event.probability) {
+      triggeredEvents.push(event);
+      messages.push(`[EVENT] ${event.name}: ${event.description}`);
+      
+      const result = applyEventEffect(event, updatedBrigades, updatedRegions, null);
       updatedBrigades = result.brigades;
       updatedRegions = result.regions;
     }
@@ -30,33 +62,65 @@ export function triggerRandomEvents(trigger, brigades, regions) {
   };
 }
 
-function applyEventEffect(event, brigades, regions) {
+function applyEventEffect(event, brigades, regions, isPlayerEvent) {
   let updatedBrigades = [...brigades];
   let updatedRegions = [...regions];
   
+  // For enemy events, invert the effect value for player-affecting events
+  // Enemy strengthBoost/moraleChange/supplyChange should weaken player regions instead
+  const effectMultiplier = isPlayerEvent === false ? -1 : 1;
+  
   switch (event.effectType) {
     case 'moraleChange':
-      if (event.scope === 'allBrigades') {
-        updatedBrigades = updatedBrigades.map(b => ({
-          ...b,
-          morale: Math.max(0, Math.min(100, b.morale + event.effectValue)),
-        }));
-      } else if (event.scope === 'singleBrigade') {
-        const randomBrigade = updatedBrigades[Math.floor(Math.random() * updatedBrigades.length)];
-        randomBrigade.morale = Math.max(0, Math.min(100, randomBrigade.morale + event.effectValue));
+      if (isPlayerEvent !== false) {
+        // Only apply to player brigades for player/neutral events
+        if (event.scope === 'allBrigades') {
+          updatedBrigades = updatedBrigades.map(b => ({
+            ...b,
+            morale: Math.max(0, Math.min(100, b.morale + (event.effectValue * effectMultiplier))),
+          }));
+        } else if (event.scope === 'singleBrigade') {
+          const randomBrigade = updatedBrigades[Math.floor(Math.random() * updatedBrigades.length)];
+          randomBrigade.morale = Math.max(0, Math.min(100, randomBrigade.morale + (event.effectValue * effectMultiplier)));
+        }
       }
       break;
       
     case 'supplyChange':
-      if (event.scope === 'singleBrigade') {
+      if (isPlayerEvent !== false) {
+        if (event.scope === 'singleBrigade') {
+          const randomBrigade = updatedBrigades[Math.floor(Math.random() * updatedBrigades.length)];
+          randomBrigade.supply = Math.max(0, Math.min(100, randomBrigade.supply + (event.effectValue * effectMultiplier)));
+          randomBrigade.artilleryAmmo = Math.max(0, Math.min(100, randomBrigade.artilleryAmmo + (event.effectValue * effectMultiplier)));
+        } else if (event.scope === 'allBrigades') {
+          updatedBrigades = updatedBrigades.map(b => ({
+            ...b,
+            supply: Math.max(0, Math.min(100, b.supply + (event.effectValue * effectMultiplier))),
+          }));
+        }
+      }
+      break;
+      
+    case 'strengthBoost':
+      if (isPlayerEvent !== false) {
+        if (event.scope === 'singleBrigade') {
+          const randomBrigade = updatedBrigades[Math.floor(Math.random() * updatedBrigades.length)];
+          randomBrigade.strength = Math.max(0, Math.min(100, randomBrigade.strength + (event.effectValue * effectMultiplier)));
+        } else if (event.scope === 'allBrigades') {
+          updatedBrigades = updatedBrigades.map(b => ({
+            ...b,
+            strength: Math.max(0, Math.min(100, b.strength + (event.effectValue * effectMultiplier))),
+          }));
+        }
+      }
+      break;
+      
+    case 'fullRecovery':
+      if (isPlayerEvent !== false && event.scope === 'singleBrigade') {
         const randomBrigade = updatedBrigades[Math.floor(Math.random() * updatedBrigades.length)];
-        randomBrigade.supply = Math.max(0, Math.min(100, randomBrigade.supply + event.effectValue));
-        randomBrigade.artilleryAmmo = Math.max(0, Math.min(100, randomBrigade.artilleryAmmo + event.effectValue));
-      } else if (event.scope === 'allBrigades') {
-        updatedBrigades = updatedBrigades.map(b => ({
-          ...b,
-          supply: Math.max(0, Math.min(100, b.supply + event.effectValue)),
-        }));
+        randomBrigade.strength = Math.min(100, randomBrigade.strength + (event.effectValue * effectMultiplier));
+        randomBrigade.morale = Math.min(100, randomBrigade.morale + (event.effectValue * effectMultiplier));
+        randomBrigade.supply = Math.min(100, randomBrigade.supply + (event.effectValue * effectMultiplier));
       }
       break;
       

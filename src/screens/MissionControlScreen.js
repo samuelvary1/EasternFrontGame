@@ -5,6 +5,7 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Alert } from 'r
 import { useGameEngine } from '../engine/gameEngine';
 import { useLanguage } from '../context/LanguageContext';
 import ActionButton from '../components/ActionButton';
+import FloatingEndTurnButton from '../components/FloatingEndTurnButton';
 
 const getWeatherDisplay = (weather, t) => {
   const weatherMap = {
@@ -143,6 +144,7 @@ export default function MissionControlScreen({ navigation }) {
           variant="secondary"
         />
       </View>
+      <FloatingEndTurnButton />
     </SafeAreaView>
   );
 }

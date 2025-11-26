@@ -197,7 +197,7 @@ export function GameEngineProvider({ children }) {
       // 4. Trigger turn start events
       const eventChance = Math.random();
       if (eventChance < 0.15 * prev.difficulty.eventFrequencyModifier) {
-        const startEvents = triggerRandomEvents('turnStart', brigades, regions);
+        const startEvents = triggerRandomEvents('turnStart', brigades, regions, prev.playerFaction);
         brigades = startEvents.brigades;
         regions = startEvents.regions;
         turnLog.push(...startEvents.messages);
@@ -235,7 +235,7 @@ export function GameEngineProvider({ children }) {
       // 6. Trigger turn end events
       const endEventChance = Math.random();
       if (endEventChance < 0.15 * prev.difficulty.eventFrequencyModifier) {
-        const endEvents = triggerRandomEvents('turnEnd', brigades, regions);
+        const endEvents = triggerRandomEvents('turnEnd', brigades, regions, prev.playerFaction);
         brigades = endEvents.brigades;
         regions = endEvents.regions;
         turnLog.push(...endEvents.messages);

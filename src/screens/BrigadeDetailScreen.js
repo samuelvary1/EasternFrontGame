@@ -4,11 +4,15 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, Alert } from 'react-native';
 import { useGameEngine } from '../engine/gameEngine';
 import ActionButton from '../components/ActionButton';
+import PlayingCard from '../components/PlayingCard';
+import FloatingEndTurnButton from '../components/FloatingEndTurnButton';
 
 export default function BrigadeDetailScreen({ route, navigation }) {
   const { brigadeId } = route.params;
   const { gameState, issueOrder } = useGameEngine();
   const [selectedStance, setSelectedStance] = useState(null);
+  const [pendingMoveRegion, setPendingMoveRegion] = useState(null);
+  const [pendingAttackRegion, setPendingAttackRegion] = useState(null);
 
   const brigade = gameState.brigades.find(b => b.id === brigadeId);
   const currentRegion = gameState.regions.find(r => r.id === brigade?.location);
@@ -33,6 +37,8 @@ export default function BrigadeDetailScreen({ route, navigation }) {
       brigadeId: brigade.id,
       targetRegion: targetRegionId,
     });
+    setPendingMoveRegion(targetRegionId);
+    setPendingAttackRegion(null);
     Alert.alert('Order Issued', `${brigade.name} will move to ${targetRegionId}`);
   };
 
@@ -42,6 +48,8 @@ export default function BrigadeDetailScreen({ route, navigation }) {
       brigadeId: brigade.id,
       targetRegion: targetRegionId,
     });
+    setPendingAttackRegion(targetRegionId);
+    setPendingMoveRegion(null);
     Alert.alert('Order Issued', `${brigade.name} will attack ${targetRegionId}`);
   };
 
@@ -61,8 +69,13 @@ export default function BrigadeDetailScreen({ route, navigation }) {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.title}>{brigade.name}</Text>
-          <Text style={styles.type}>{brigade.type.toUpperCase()}</Text>
+          {brigade.card && (
+            <PlayingCard card={brigade.card} size="medium" />
+          )}
+          <View style={styles.headerText}>
+            <Text style={styles.title}>{brigade.name}</Text>
+            <Text style={styles.type}>{brigade.type.toUpperCase()}</Text>
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -101,28 +114,34 @@ export default function BrigadeDetailScreen({ route, navigation }) {
         {adjacentRegions.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Move To</Text>
-            {adjacentRegions.map(region => (
-              <ActionButton
-                key={region.id}
-                title={`${region.name} (${region.control})`}
-                onPress={() => handleMove(region.id)}
-                variant="secondary"
-              />
-            ))}
+            <View style={styles.ordersButtons}>
+              {adjacentRegions.map(region => (
+                <ActionButton
+                  key={region.id}
+                  title={`${region.name}`}
+                  onPress={() => handleMove(region.id)}
+                  variant={pendingMoveRegion === region.id ? 'primary' : 'secondary'}
+                  style={styles.ordersButton}
+                />
+              ))}
+            </View>
           </View>
         )}
 
         {enemyRegions.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Attack</Text>
-            {enemyRegions.map(region => (
-              <ActionButton
-                key={region.id}
-                title={`Attack ${region.name} (Enemy: ${region.enemyStrengthEstimate})`}
-                onPress={() => handleAttack(region.id)}
-                variant="danger"
-              />
-            ))}
+            <View style={styles.ordersButtons}>
+              {enemyRegions.map(region => (
+                <ActionButton
+                  key={region.id}
+                  title={`${region.name} (${region.enemyStrengthEstimate})`}
+                  onPress={() => handleAttack(region.id)}
+                  variant={pendingAttackRegion === region.id ? 'primary' : 'danger'}
+                  style={styles.ordersButton}
+                />
+              ))}
+            </View>
           </View>
         )}
 
@@ -132,6 +151,7 @@ export default function BrigadeDetailScreen({ route, navigation }) {
           variant="secondary"
         />
       </ScrollView>
+      <FloatingEndTurnButton />
     </SafeAreaView>
   );
 }
@@ -151,64 +171,71 @@ const styles = StyleSheet.create({
     backgroundColor: '#111827',
   },
   content: {
-    padding: 20,
+    padding: 12,
+    paddingBottom: 60,
   },
   header: {
-    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+    gap: 10,
+  },
+  headerText: {
+    flex: 1,
   },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
     color: '#f3f4f6',
-    marginBottom: 5,
+    marginBottom: 3,
   },
   type: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#9ca3af',
     fontWeight: '600',
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '700',
     color: '#60a5fa',
-    marginBottom: 12,
-    marginTop: 8,
+    marginBottom: 6,
+    marginTop: 0,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 15,
+    gap: 8,
   },
   statItem: {
     alignItems: 'center',
-    minWidth: 80,
+    minWidth: 65,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#6b7280',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   statValue: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '700',
     color: '#e5e7eb',
   },
   locationText: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#e5e7eb',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   terrainText: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#9ca3af',
   },
   currentStance: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#9ca3af',
-    marginBottom: 10,
+    marginBottom: 6,
   },
   ordersButtons: {
     flexDirection: 'row',
@@ -217,7 +244,7 @@ const styles = StyleSheet.create({
   },
   ordersButton: {
     width: '48%',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   errorText: {
     fontSize: 18,

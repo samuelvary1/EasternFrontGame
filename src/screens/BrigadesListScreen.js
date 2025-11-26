@@ -5,6 +5,7 @@ import { View, Text, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
 import { useGameEngine } from '../engine/gameEngine';
 import BrigadeCard from '../components/BrigadeCard';
 import ActionButton from '../components/ActionButton';
+import FloatingEndTurnButton from '../components/FloatingEndTurnButton';
 
 export default function BrigadesListScreen({ navigation }) {
   const { gameState } = useGameEngine();
@@ -52,6 +53,7 @@ export default function BrigadesListScreen({ navigation }) {
           variant="secondary"
         />
       </View>
+      <FloatingEndTurnButton />
     </SafeAreaView>
   );
 }

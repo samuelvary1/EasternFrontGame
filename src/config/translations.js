@@ -5,6 +5,7 @@ export const translations = {
     // Main Menu
     mainMenu: {
       title: 'EASTERN\nFRONT',
+      resume: 'RESUME CAMPAIGN',
       newCampaign: 'NEW CAMPAIGN',
       loadGame: 'LOAD GAME',
       howToPlay: 'HOW TO PLAY',
@@ -147,6 +148,7 @@ export const translations = {
     // Main Menu
     mainMenu: {
       title: 'ВОСТОЧНЫЙ\nФРОНТ',
+      resume: 'ПРОДОЛЖИТЬ КАМПАНИЮ',
       newCampaign: 'НОВАЯ КАМПАНИЯ',
       loadGame: 'ЗАГРУЗИТЬ ИГРУ',
       howToPlay: 'КАК ИГРАТЬ',

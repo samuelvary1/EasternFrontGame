@@ -5,6 +5,7 @@ import { View, Text, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
 import { useGameEngine } from '../engine/gameEngine';
 import RegionCard from '../components/RegionCard';
 import ActionButton from '../components/ActionButton';
+import FloatingEndTurnButton from '../components/FloatingEndTurnButton';
 
 export default function RegionsListScreen({ navigation }) {
   const { gameState } = useGameEngine();
@@ -60,6 +61,7 @@ export default function RegionsListScreen({ navigation }) {
           variant="secondary"
         />
       </View>
+      <FloatingEndTurnButton />
     </SafeAreaView>
   );
 }

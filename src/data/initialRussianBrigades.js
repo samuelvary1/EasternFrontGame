@@ -13,6 +13,7 @@ export const initialRussianBrigades = [
     stance: 'offensive',
     droneCount: 4,
     experience: 65,
+    card: '🄡', // Ace of Clubs
   },
   {
     id: 'ru_76_airborne',
@@ -25,6 +26,7 @@ export const initialRussianBrigades = [
     stance: 'offensive',
     droneCount: 4,
     experience: 70,
+    card: '🄮', // King of Clubs
   },
   {
     id: 'ru_4_guards',
@@ -37,6 +39,7 @@ export const initialRussianBrigades = [
     stance: 'offensive',
     droneCount: 4,
     experience: 60,
+    card: '🄭', // Queen of Clubs
   },
   {
     id: 'ru_41_combined',
@@ -49,6 +52,7 @@ export const initialRussianBrigades = [
     stance: 'offensive',
     droneCount: 3,
     experience: 55,
+    card: '🃛', // Jack of Clubs
   },
   {
     id: 'ru_2_guards',
@@ -61,6 +65,7 @@ export const initialRussianBrigades = [
     stance: 'offensive',
     droneCount: 3,
     experience: 60,
+    card: '🃚', // 10 of Clubs
   },
   
   // EASTERN FRONT
@@ -75,6 +80,7 @@ export const initialRussianBrigades = [
     stance: 'offensive',
     droneCount: 3,
     experience: 75,
+    card: '🃙', // 9 of Clubs
   },
   {
     id: 'ru_2nd_luhansk',
@@ -87,6 +93,7 @@ export const initialRussianBrigades = [
     stance: 'offensive',
     droneCount: 3,
     experience: 70,
+    card: '🃘', // 8 of Clubs
   },
   {
     id: 'ru_58th_army',
@@ -99,6 +106,7 @@ export const initialRussianBrigades = [
     stance: 'offensive',
     droneCount: 3,
     experience: 55,
+    card: '🃝', // Queen of Diamonds
   },
   
   // SOUTHERN FRONT
@@ -113,6 +121,7 @@ export const initialRussianBrigades = [
     stance: 'offensive',
     droneCount: 3,
     experience: 65,
+    card: '🃛', // Jack of Diamonds
   },
   {
     id: 'ru_810_marines',
@@ -125,6 +134,7 @@ export const initialRussianBrigades = [
     stance: 'offensive',
     droneCount: 3,
     experience: 60,
+    card: '🃚', // 10 of Diamonds
   },
   {
     id: 'ru_7_airborne',
@@ -137,5 +147,6 @@ export const initialRussianBrigades = [
     stance: 'offensive',
     droneCount: 4,
     experience: 70,
+    card: '🃙', // 9 of Diamonds
   },
 ];

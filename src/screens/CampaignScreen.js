@@ -98,12 +98,6 @@ export default function CampaignScreen({ navigation }) {
             variant="secondary"
             style={styles.footerButton}
           />
-          <ActionButton
-            title="End Turn"
-            onPress={handleEndTurn}
-            variant="primary"
-            style={styles.footerButton}
-          />
         </View>
       </View>
     </SafeAreaView>
