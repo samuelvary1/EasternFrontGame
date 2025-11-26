@@ -47,7 +47,19 @@ export default function MainMenuScreen({ navigation }) {
   };
 
   const handleHowToPlay = () => {
-    alert('Defend Ukraine by managing brigades, supply routes, and tactical decisions. Hold Kyiv and key supply corridors for 20 turns to win.');
+    alert(
+      'EASTERN FRONT - Operational Wargame\n\n' +
+      'Choose Ukraine or Russia and manage your forces in a strategic campaign.\n\n' +
+      'KEY MECHANICS:\n' +
+      '• Manage brigade Strength, Morale, and Supply\n' +
+      '• Move brigades between adjacent regions\n' +
+      '• Change stances (hold, mobile defense, counterattack, fallback)\n' +
+      '• Attack enemy-held regions\n' +
+      '• Protect supply routes and key objectives\n\n' +
+      'VICTORY:\n' +
+      'Ukraine: Hold Kyiv for 20 turns\n' +
+      'Russia: Capture Kyiv within 20 turns'
+    );
   };
 
   if (showFactionSelect) {

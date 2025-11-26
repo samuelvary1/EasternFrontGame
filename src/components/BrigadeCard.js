@@ -63,18 +63,8 @@ export default function BrigadeCard({ brigade, onPress }) {
           </View>
 
           <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Fuel</Text>
-            <Text style={styles.statValue}>{brigade.fuel}</Text>
-          </View>
-
-          <View style={styles.statItem}>
             <Text style={styles.statLabel}>Drones</Text>
-            <Text style={styles.statValue}>{brigade.droneCount}</Text>
-          </View>
-
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Artillery</Text>
-            <Text style={styles.statValue}>{brigade.artilleryAmmo}</Text>
+            <Text style={styles.statValue}>{brigade.droneCount ?? brigade.drones ?? 0}</Text>
           </View>
         </View>
       </View>

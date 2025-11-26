@@ -12,11 +12,6 @@ import { updateSupply, consumeSuppliesForMovement, consumeSuppliesForCombat, app
 import { resolveCombat, resolveDefensiveBattle } from './combatResolver';
 import { computeAIActions, applyAIAction } from './aiSystem';
 import { triggerRandomEvents } from './eventsSystem';
-import { updateAirDefense, processDroneLoss } from './airDefenseSystem';
-import { performReconnaissance, decayIntel } from './reconSystem';
-import { performCounterbattery, calculateArtilleryDamage } from './artillerySystem';
-import { checkAntiArmorEngagement } from './antiArmorSystem';
-import { updateElectronicWarfare } from './electronicWarfareSystem';
 
 const GameEngineContext = createContext();
 
@@ -53,25 +48,27 @@ export function GameEngineProvider({ children }) {
           'Campaign begins. Defend Ukraine.',
           '',
           'FIRST TURN GUIDANCE:',
-          '• Check the MAP to see your positions',
-          '• Review your brigades\' status and location',
-          '• Kyiv Northwest is under heavy threat - consider reinforcing',
-          '• Protect your supply route from the west',
-          '• Tap regions on the map for tactical details',
+          '• Check the MAP to see your positions and threats',
+          '• Review your brigades - manage Strength, Morale, and Supply',
+          '• Kyiv Northwest is under heavy threat - reinforce if needed',
+          '• Protect your supply routes from the west',
+          '• Change brigade stances (hold, mobile defense, etc.)',
+          '• Move brigades between adjacent regions to respond to attacks',
           '',
-          'When ready, end your turn to begin combat.',
+          'When ready, end your turn to see combat results.',
         ]
       : [
           'Campaign begins. Execute the offensive.',
           '',
           'FIRST TURN GUIDANCE:',
-          '• Check the MAP to see enemy positions',
+          '• Check the MAP to see enemy positions and your forces',
+          '• Review your brigades - manage Strength, Morale, and Supply',
           '• Your forces are staged at Belarus Border',
-          '• Kyiv Northwest is the first objective',
-          '• Cut off Ukrainian supply from the west',
-          '• Capture Kyiv to win the campaign',
+          '• Attack Kyiv Northwest to begin the assault',
+          '• Cut off Ukrainian supply lines from the west',
+          '• Change stances to offensive for maximum attack power',
           '',
-          'When ready, end your turn to begin combat.',
+          'Capture Kyiv within 20 turns to achieve victory.',
         ];
 
     setGameState({
@@ -127,31 +124,7 @@ export function GameEngineProvider({ children }) {
       weather = rollWeather();
       turnLog.push(`Weather: ${weather.toUpperCase()}`);
 
-      // 2. Update air defense
-      regions = updateAirDefense(regions, brigades);
-
-      // 3. Update electronic warfare
-      regions = updateElectronicWarfare(regions, weather);
-      regions.forEach(r => {
-        if (r.electronicWarfareActive) {
-          turnLog.push(`Electronic warfare active in ${r.name}.`);
-        }
-      });
-
-      // 4. Process recon missions
-      brigades.forEach((brigade, idx) => {
-        if (brigade.reconAssigned) {
-          const reconResult = performReconnaissance(brigade, regions, weather);
-          brigades[idx] = reconResult.brigade;
-          regions = reconResult.regions;
-          turnLog.push(...reconResult.messages);
-        }
-      });
-
-      // 5. Decay intel from previous turns
-      regions = decayIntel(regions);
-
-      // 6. Apply player orders
+      // 2. Apply player orders
       prev.orders.forEach(order => {
         if (order.type === 'move') {
           const brigadeIdx = brigades.findIndex(b => b.id === order.brigadeId);
@@ -181,23 +154,10 @@ export function GameEngineProvider({ children }) {
             
             turnLog.push(...combatResult.messages);
           }
-        } else if (order.type === 'counterbattery') {
-          const brigadeIdx = brigades.findIndex(b => b.id === order.brigadeId);
-          if (brigadeIdx >= 0) {
-            const cbResult = performCounterbattery(brigades[brigadeIdx], regions);
-            brigades[brigadeIdx] = cbResult.brigade;
-            regions = cbResult.regions;
-            turnLog.push(...cbResult.messages);
-          }
-        } else if (order.type === 'assignRecon') {
-          const brigadeIdx = brigades.findIndex(b => b.id === order.brigadeId);
-          if (brigadeIdx >= 0) {
-            brigades[brigadeIdx].reconAssigned = true;
-          }
         }
       });
 
-      // 7. Update supply
+      // 3. Update supply
       brigades = brigades.map(brigade => {
         const updated = updateSupply(brigade, regions, weather);
         return {
@@ -206,13 +166,7 @@ export function GameEngineProvider({ children }) {
         };
       });
 
-      // 8. Process drone losses
-      brigades = brigades.map(brigade => {
-        const location = regions.find(r => r.id === brigade.location);
-        return location ? processDroneLoss(brigade, location, weather) : brigade;
-      });
-
-      // 9. Trigger turn start events
+      // 4. Trigger turn start events
       const eventChance = Math.random();
       if (eventChance < 0.15 * prev.difficulty.eventFrequencyModifier) {
         const startEvents = triggerRandomEvents('turnStart', brigades, regions);
@@ -221,7 +175,7 @@ export function GameEngineProvider({ children }) {
         turnLog.push(...startEvents.messages);
       }
 
-      // 10. AI actions
+      // 4. AI actions
       const aiDecisions = computeAIActions(regions, brigades, weather, prev.difficulty, prev.playerFaction);
       turnLog.push(...aiDecisions.messages);
 
@@ -232,7 +186,7 @@ export function GameEngineProvider({ children }) {
         turnLog.push(...aiResult.messages);
       });
 
-      // 11. Resolve defensive battles (AI attacks)
+      // 5. Resolve defensive battles (AI attacks)
       const attackActions = aiDecisions.actions.filter(a => a.action === 'attack');
       attackActions.forEach(attack => {
         const targetRegion = regions.find(r => r.id === attack.target);
@@ -250,24 +204,7 @@ export function GameEngineProvider({ children }) {
         });
       });
 
-      // 12. Apply artillery damage
-      regions.forEach(region => {
-        if (region.artilleryIntensity > 20) {
-          const damage = calculateArtilleryDamage(region, brigades);
-          brigades.forEach(brigade => {
-            if (brigade.location === region.id) {
-              brigade.strength = Math.max(0, brigade.strength - damage.damage);
-              brigade.morale = Math.max(0, brigade.morale - damage.moraleLoss);
-            }
-          });
-          
-          if (damage.damage > 0) {
-            turnLog.push(`Artillery fire in ${region.name} caused ${damage.damage} casualties.`);
-          }
-        }
-      });
-
-      // 13. Trigger turn end events
+      // 6. Trigger turn end events
       const endEventChance = Math.random();
       if (endEventChance < 0.15 * prev.difficulty.eventFrequencyModifier) {
         const endEvents = triggerRandomEvents('turnEnd', brigades, regions);
@@ -276,15 +213,16 @@ export function GameEngineProvider({ children }) {
         turnLog.push(...endEvents.messages);
       }
 
-      // 14. Regenerate drones based on difficulty
+      // 7. Regenerate drones based on difficulty
       brigades = brigades.map(brigade => ({
         ...brigade,
-        drones: Math.min(brigade.drones + prev.difficulty.playerDroneRegen, 8),
+        droneCount: Math.min(brigade.droneCount + prev.difficulty.playerDroneRegen, 8),
       }));
 
-      // 15. Check victory/defeat conditions
-      const kyivRegion = regions.find(r => r.id === 'kyiv_center');
-      const supplyRegion = regions.find(r => r.id === 'supply_route');
+      // 8. Check victory/defeat conditions
+      const kyivRegion = regions.find(r => r.id === 'kyiv');
+      const lvivRegion = regions.find(r => r.id === 'lviv');
+      const kharkivRegion = regions.find(r => r.id === 'kharkiv');
       const allBrigadesDestroyed = brigades.every(b => b.strength <= 0);
       
       let gameOver = false;
@@ -293,7 +231,8 @@ export function GameEngineProvider({ children }) {
       if (prev.playerFaction === 'ukraine') {
         // Ukrainian victory conditions
         const kyivControlled = kyivRegion?.control === 'ukraine';
-        const supplyOpen = supplyRegion?.control === 'ukraine';
+        const lvivControlled = lvivRegion?.control === 'ukraine';
+        const majorCitiesHeld = [kyivRegion, lvivRegion, kharkivRegion].filter(r => r?.control === 'ukraine').length;
 
         if (allBrigadesDestroyed) {
           gameOver = true;
@@ -303,15 +242,19 @@ export function GameEngineProvider({ children }) {
           gameOver = true;
           victory = false;
           turnLog.push('\n*** DEFEAT: Kyiv has fallen to enemy forces. ***');
-        } else if (turn >= 20 && kyivControlled && supplyOpen) {
+        } else if (!lvivControlled) {
+          gameOver = true;
+          victory = false;
+          turnLog.push('\n*** DEFEAT: Western supply lines cut! Lviv has fallen. ***');
+        } else if (turn >= 20 && kyivControlled && lvivControlled && majorCitiesHeld >= 2) {
           gameOver = true;
           victory = true;
-          turnLog.push('\n*** VICTORY: You have successfully defended Ukraine! ***');
+          turnLog.push('\n*** VICTORY: Ukraine has successfully defended its sovereignty! ***');
         }
       } else {
         // Russian victory conditions
         const kyivCaptured = kyivRegion?.control === 'russia';
-        const supplyCut = supplyRegion?.control === 'russia';
+        const majorCitiesCaptured = [kyivRegion, lvivRegion, kharkivRegion].filter(r => r?.control === 'russia').length;
 
         if (allBrigadesDestroyed) {
           gameOver = true;
@@ -320,11 +263,15 @@ export function GameEngineProvider({ children }) {
         } else if (kyivCaptured) {
           gameOver = true;
           victory = true;
-          turnLog.push('\n*** VICTORY: Kyiv has been captured! ***');
+          turnLog.push('\n*** VICTORY: Kyiv captured! Ukraine capitulates! ***');
+        } else if (turn >= 20 && majorCitiesCaptured >= 2) {
+          gameOver = true;
+          victory = true;
+          turnLog.push('\n*** VICTORY: Strategic objectives achieved! Ukraine sues for peace. ***');
         } else if (turn >= 20) {
           gameOver = true;
           victory = false;
-          turnLog.push('\n*** DEFEAT: Failed to capture Kyiv in time. Operation failed. ***');
+          turnLog.push('\n*** DEFEAT: Failed to achieve strategic objectives. Operation failed. ***');
         }
       }
 

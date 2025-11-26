@@ -5,8 +5,6 @@ export function updateSupply(brigade, regions, weather) {
   if (!location) return brigade;
 
   let newSupply = brigade.supply;
-  let newFuel = brigade.fuel;
-  let newAmmo = brigade.ammo;
 
   // Base supply from region
   const supplyRate = location.baseSupply / 100;
@@ -27,21 +25,13 @@ export function updateSupply(brigade, regions, weather) {
   // Calculate supply change
   const effectiveSupplyRate = supplyRate * controlBonus * isolationPenalty * pressurePenalty * (1 - weatherPenalty);
   
-  // Update supply, fuel, ammo
-  const supplyChange = (effectiveSupplyRate * 25) - 10; // Net change per turn
+  // Update unified supply stat
+  const supplyChange = (effectiveSupplyRate * 20) - 8; // Net change per turn
   newSupply = Math.max(0, Math.min(100, brigade.supply + supplyChange));
-  
-  const fuelChange = (effectiveSupplyRate * 20) - 8;
-  newFuel = Math.max(0, Math.min(100, brigade.fuel + fuelChange));
-  
-  const ammoChange = (effectiveSupplyRate * 15) - 5;
-  newAmmo = Math.max(0, Math.min(100, brigade.ammo + ammoChange));
   
   return {
     ...brigade,
     supply: Math.round(newSupply),
-    fuel: Math.round(newFuel),
-    ammo: Math.round(newAmmo),
   };
 }
 
@@ -83,16 +73,13 @@ export function applySupplyToMorale(morale, supply) {
 export function consumeSuppliesForMovement(brigade) {
   return {
     ...brigade,
-    fuel: Math.max(0, brigade.fuel - 10),
-    supply: Math.max(0, brigade.supply - 5),
+    supply: Math.max(0, brigade.supply - 10),
   };
 }
 
 export function consumeSuppliesForCombat(brigade) {
   return {
     ...brigade,
-    ammo: Math.max(0, brigade.ammo - 15),
-    fuel: Math.max(0, brigade.fuel - 5),
-    supply: Math.max(0, brigade.supply - 10),
+    supply: Math.max(0, brigade.supply - 15),
   };
 }

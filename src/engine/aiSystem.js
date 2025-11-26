@@ -55,7 +55,6 @@ function decideRegionAction(region, allRegions, brigades, weather, difficulty, a
     hold: 30,
     attack: 0,
     reinforce: 0,
-    artillery: 20,
   };
   
   // Attack decision
@@ -100,8 +99,8 @@ function decideRegionAction(region, allRegions, brigades, weather, difficulty, a
   
   switch (action) {
     case 'attack':
-      if (ukrainianNeighbors.length > 0) {
-        const target = ukrainianNeighbors[Math.floor(Math.random() * ukrainianNeighbors.length)];
+      if (enemyNeighbors.length > 0) {
+        const target = enemyNeighbors[Math.floor(Math.random() * enemyNeighbors.length)];
         return {
           type: 'attack',
           target: target.id,
@@ -112,25 +111,13 @@ function decideRegionAction(region, allRegions, brigades, weather, difficulty, a
       return null;
       
     case 'reinforce':
-      if (enemyNeighbors.length > 0) {
-        const target = enemyNeighbors[Math.floor(Math.random() * enemyNeighbors.length)];
+      if (friendlyNeighbors.length > 0) {
+        const target = friendlyNeighbors[Math.floor(Math.random() * friendlyNeighbors.length)];
         return {
           type: 'reinforce',
           target: target.id,
           intensity: Math.floor(strength * 0.3),
           message: `Enemy forces are reinforcing positions in ${target.name}.`,
-        };
-      }
-      return null;
-      
-    case 'artillery':
-      if (ukrainianNeighbors.length > 0) {
-        const target = ukrainianNeighbors[Math.floor(Math.random() * ukrainianNeighbors.length)];
-        return {
-          type: 'artillery',
-          target: target.id,
-          intensity: Math.floor(strength * 0.4),
-          message: `Heavy artillery fire from ${region.name} is impacting ${target.name}.`,
         };
       }
       return null;
@@ -212,23 +199,6 @@ export function applyAIAction(action, regions, brigades) {
         if (sourceRegion) {
           sourceRegion.enemyStrengthEstimate = Math.max(0, sourceRegion.enemyStrengthEstimate - action.intensity);
         }
-      }
-      break;
-    }
-    
-    case 'artillery': {
-      const targetRegion = updatedRegions.find(r => r.id === action.target);
-      const targetBrigades = updatedBrigades.filter(b => b.location === action.target);
-      
-      targetBrigades.forEach(brigade => {
-        const damage = Math.floor(5 + Math.random() * 10);
-        brigade.strength = Math.max(0, brigade.strength - damage);
-        brigade.morale = Math.max(0, brigade.morale - 3);
-        brigade.supply = Math.max(0, brigade.supply - 5);
-      });
-      
-      if (targetRegion) {
-        targetRegion.artilleryIntensity = Math.min(100, targetRegion.artilleryIntensity + 15);
       }
       break;
     }

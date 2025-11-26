@@ -25,6 +25,12 @@ export function resolveCombat(attackingBrigade, defendingRegion, weather, log) {
   // Combat resolution
   const powerRatio = attackerPower / Math.max(1, defenderPower);
   
+  // Add combat details
+  messages.push(`\n=== COMBAT: ${attackingBrigade.name} attacks ${defendingRegion.name} ===`);
+  messages.push(`Attacker Power: ${Math.round(attackerPower)} (Strength ${attackingBrigade.strength}, Supply ${attackingBrigade.supply}%)`);
+  messages.push(`Defender Power: ${Math.round(defenderPower)} (Enemy Strength ${defendingRegion.enemyStrengthEstimate}, Terrain: ${defendingRegion.terrain})`);
+  messages.push(`Combat Ratio: ${powerRatio.toFixed(2)}:1`);
+  
   let outcome;
   let attackerLosses;
   let defenderLosses;
@@ -38,7 +44,7 @@ export function resolveCombat(attackingBrigade, defendingRegion, weather, log) {
     defenderLosses = Math.floor(30 + Math.random() * 20);
     moraleChange = 10;
     controlChange = true;
-    messages.push(`${attackingBrigade.name} achieved a decisive victory at ${defendingRegion.name}!`);
+    messages.push(`DECISIVE VICTORY! ${attackingBrigade.name} overwhelms the defenders!`);
   } else if (powerRatio > 1.3) {
     // Victory
     outcome = 'victory';
@@ -46,28 +52,35 @@ export function resolveCombat(attackingBrigade, defendingRegion, weather, log) {
     defenderLosses = Math.floor(20 + Math.random() * 15);
     moraleChange = 5;
     controlChange = true;
-    messages.push(`${attackingBrigade.name} secured ${defendingRegion.name} after heavy fighting.`);
+    messages.push(`VICTORY! ${attackingBrigade.name} captures ${defendingRegion.name} after heavy fighting.`);
   } else if (powerRatio > 0.9) {
     // Stalemate
     outcome = 'stalemate';
     attackerLosses = Math.floor(15 + Math.random() * 15);
     defenderLosses = Math.floor(15 + Math.random() * 15);
     moraleChange = -2;
-    messages.push(`${attackingBrigade.name} fought to a stalemate at ${defendingRegion.name}.`);
+    messages.push(`STALEMATE: Fierce fighting with no clear victor at ${defendingRegion.name}.`);
   } else if (powerRatio > 0.6) {
     // Setback
     outcome = 'setback';
     attackerLosses = Math.floor(20 + Math.random() * 15);
     defenderLosses = Math.floor(10 + Math.random() * 10);
     moraleChange = -5;
-    messages.push(`${attackingBrigade.name} was repulsed at ${defendingRegion.name}.`);
+    messages.push(`SETBACK: ${attackingBrigade.name} forced to withdraw from ${defendingRegion.name}.`);
   } else {
     // Defeat
     outcome = 'defeat';
     attackerLosses = Math.floor(25 + Math.random() * 20);
     defenderLosses = Math.floor(5 + Math.random() * 10);
     moraleChange = -10;
-    messages.push(`${attackingBrigade.name} suffered heavy losses attacking ${defendingRegion.name}.`);
+    messages.push(`DEFEAT: ${attackingBrigade.name} suffers heavy casualties and retreats!`);
+  }
+  
+  // Add casualty report
+  messages.push(`Casualties: Your forces -${attackerLosses}, Enemy -${defenderLosses}`);
+  messages.push(`Morale change: ${moraleChange > 0 ? '+' : ''}${moraleChange}`);
+  if (controlChange) {
+    messages.push(`${defendingRegion.name} is now under your control!`);
   }
   
   // Apply losses
@@ -154,6 +167,11 @@ export function resolveDefensiveBattle(defendingBrigade, attackingRegion, weathe
   
   const powerRatio = defenderPower / Math.max(1, attackerPower);
   
+  messages.push(`\n=== DEFENSE: ${defendingBrigade.name} under attack at ${attackingRegion.name} ===`);
+  messages.push(`Defender Power: ${Math.round(defenderPower)} (Stance: ${defendingBrigade.stance})`);
+  messages.push(`Attacker Power: ${Math.round(attackerPower)} (Enemy: ${attackingRegion.enemyStrengthEstimate})`);
+  messages.push(`Defense Ratio: ${powerRatio.toFixed(2)}:1`);
+  
   let defenderLosses;
   let attackerLosses;
   let moraleChange;
@@ -162,23 +180,26 @@ export function resolveDefensiveBattle(defendingBrigade, attackingRegion, weathe
     defenderLosses = Math.floor(5 + Math.random() * 8);
     attackerLosses = Math.floor(25 + Math.random() * 20);
     moraleChange = 8;
-    messages.push(`${defendingBrigade.name} repelled the enemy attack with minimal losses.`);
+    messages.push(`STRONG DEFENSE! Enemy attack shattered with minimal losses.`);
   } else if (powerRatio > 1.0) {
     defenderLosses = Math.floor(10 + Math.random() * 12);
     attackerLosses = Math.floor(15 + Math.random() * 15);
     moraleChange = 3;
-    messages.push(`${defendingBrigade.name} held their position despite heavy pressure.`);
+    messages.push(`POSITION HELD: Enemy attack repulsed despite heavy pressure.`);
   } else if (powerRatio > 0.7) {
     defenderLosses = Math.floor(15 + Math.random() * 15);
     attackerLosses = Math.floor(10 + Math.random() * 10);
     moraleChange = -3;
-    messages.push(`${defendingBrigade.name} took significant losses but held the line.`);
+    messages.push(`HARD FOUGHT: Significant casualties but position maintained.`);
   } else {
     defenderLosses = Math.floor(20 + Math.random() * 20);
     attackerLosses = Math.floor(8 + Math.random() * 8);
     moraleChange = -8;
-    messages.push(`${defendingBrigade.name} was badly mauled defending their position.`);
+    messages.push(`HEAVY LOSSES: Brigade badly mauled but holds position.`);
   }
+  
+  messages.push(`Casualties: Your forces -${defenderLosses}, Enemy -${attackerLosses}`);
+  messages.push(`Morale change: ${moraleChange > 0 ? '+' : ''}${moraleChange}`);
   
   return {
     brigade: {

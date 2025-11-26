@@ -7,8 +7,8 @@ import { useGameEngine } from '../engine/gameEngine';
 import ActionButton from '../components/ActionButton';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
-const MAP_WIDTH = SCREEN_WIDTH - 40;
-const MAP_HEIGHT = 700;
+const MAP_WIDTH = SCREEN_WIDTH - 20;
+const MAP_HEIGHT = SCREEN_WIDTH - 20;
 
 export default function EnhancedMapScreen({ navigation }) {
   const { gameState } = useGameEngine();
@@ -26,13 +26,40 @@ export default function EnhancedMapScreen({ navigation }) {
     navigation.navigate('RegionDetail', { regionId: region.id });
   };
 
-  // Region positions with actual coordinates
+  // Region positions - Geographically oriented Ukraine map (proportional to map size)
+  const scale = MAP_WIDTH / 340; // Scale based on actual map width
   const regionNodes = {
-    'kyiv_center': { x: 200, y: 280, size: 65 },
-    'kyiv_northwest': { x: 180, y: 180, size: 55 },
-    'kyiv_south': { x: 190, y: 380, size: 50 },
-    'belarus_border': { x: 100, y: 80, size: 50 },
-    'supply_route': { x: 100, y: 500, size: 50 },
+    // WESTERN UKRAINE (far left)
+    'lviv': { x: 30 * scale, y: 170 * scale, size: 35 * scale },
+    'zhytomyr': { x: 91 * scale, y: 146 * scale, size: 29 * scale },
+    
+    // NORTHERN TIER (top row)
+    'belarus_border': { x: 146 * scale, y: 36 * scale, size: 27 * scale },
+    'chernihiv': { x: 200 * scale, y: 49 * scale, size: 30 * scale },
+    'sumy': { x: 255 * scale, y: 55 * scale, size: 29 * scale },
+    
+    // KYIV SECTOR (north-central)
+    'hostomel': { x: 134 * scale, y: 97 * scale, size: 30 * scale },
+    'bucha': { x: 109 * scale, y: 121 * scale, size: 29 * scale },
+    'kyiv': { x: 158 * scale, y: 127 * scale, size: 42 * scale },
+    'brovary': { x: 206 * scale, y: 121 * scale, size: 29 * scale },
+    'vasylkiv': { x: 146 * scale, y: 170 * scale, size: 27 * scale },
+    
+    // CENTRAL UKRAINE (middle)
+    'poltava': { x: 231 * scale, y: 158 * scale, size: 30 * scale },
+    
+    // EASTERN FRONT (right side)
+    'kharkiv': { x: 285 * scale, y: 109 * scale, size: 36 * scale },
+    'donbas': { x: 304 * scale, y: 170 * scale, size: 35 * scale },
+    
+    // SOUTH-CENTRAL
+    'dnipro': { x: 231 * scale, y: 212 * scale, size: 36 * scale },
+    
+    // SOUTHERN TIER (bottom row)
+    'zaporizhzhia': { x: 267 * scale, y: 255 * scale, size: 32 * scale },
+    'mariupol': { x: 310 * scale, y: 231 * scale, size: 30 * scale },
+    'kherson': { x: 194 * scale, y: 291 * scale, size: 30 * scale },
+    'odesa': { x: 109 * scale, y: 304 * scale, size: 35 * scale },
   };
 
   const getRegionColor = (control) => {
@@ -47,12 +74,22 @@ export default function EnhancedMapScreen({ navigation }) {
   };
 
   const renderConnections = () => {
-    const connections = [
-      ['belarus_border', 'kyiv_northwest'],
-      ['kyiv_northwest', 'kyiv_center'],
-      ['kyiv_center', 'kyiv_south'],
-      ['kyiv_south', 'supply_route'],
-    ];
+    // Build connections from region adjacency data
+    const drawnConnections = new Set();
+    const connections = [];
+    
+    gameState.regions.forEach(region => {
+      region.adjacency.forEach(adjId => {
+        const key1 = `${region.id}-${adjId}`;
+        const key2 = `${adjId}-${region.id}`;
+        
+        // Avoid drawing duplicate lines
+        if (!drawnConnections.has(key1) && !drawnConnections.has(key2)) {
+          connections.push([region.id, adjId]);
+          drawnConnections.add(key1);
+        }
+      });
+    });
 
     return connections.map((conn, idx) => {
       const [from, to] = conn;
@@ -180,6 +217,14 @@ export default function EnhancedMapScreen({ navigation }) {
             <Text style={styles.legendText}>Contested</Text>
           </View>
           <View style={styles.legendRow}>
+            <View style={[styles.legendDot, { backgroundColor: '#10b981' }]} />
+            <Text style={styles.legendText}>Your Brigades</Text>
+          </View>
+          <View style={styles.legendRow}>
+            <View style={[styles.legendDot, { backgroundColor: '#dc2626' }]} />
+            <Text style={styles.legendText}>Enemy Forces</Text>
+          </View>
+          <View style={styles.legendRow}>
             <View style={styles.legendLine} />
             <Text style={styles.legendText}>Connections</Text>
           </View>
@@ -210,7 +255,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#111827',
   },
   header: {
-    padding: 20,
+    padding: 12,
     backgroundColor: '#1f2937',
     borderBottomWidth: 1,
     borderBottomColor: '#374151',
@@ -219,7 +264,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '700',
     color: '#f3f4f6',
   },
@@ -239,10 +284,12 @@ const styles = StyleSheet.create({
     width: MAP_WIDTH,
     height: MAP_HEIGHT,
     backgroundColor: '#1f2937',
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 2,
     borderColor: '#374151',
-    margin: 20,
+    marginHorizontal: 10,
+    marginVertical: 10,
+    alignSelf: 'center',
     position: 'relative',
   },
   svg: {
@@ -255,7 +302,7 @@ const styles = StyleSheet.create({
     marginTop: -5,
   },
   regionLabelText: {
-    fontSize: 10,
+    fontSize: 8,
     fontWeight: '700',
     color: '#f3f4f6',
     textAlign: 'center',
@@ -264,59 +311,67 @@ const styles = StyleSheet.create({
     textShadowRadius: 3,
   },
   brigadeCountText: {
-    fontSize: 9,
+    fontSize: 7,
     color: '#10b981',
     fontWeight: '700',
   },
   enemyCountText: {
-    fontSize: 9,
+    fontSize: 7,
     color: '#ef4444',
     fontWeight: '700',
   },
   legend: {
     backgroundColor: '#1f2937',
-    borderRadius: 8,
-    padding: 15,
-    marginHorizontal: 20,
-    marginBottom: 20,
+    borderRadius: 6,
+    padding: 10,
+    marginHorizontal: 10,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: '#374151',
   },
   legendRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 5,
+    marginVertical: 2,
   },
   legendCircle: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    marginRight: 12,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    marginRight: 8,
+  },
+  legendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#ffffff',
   },
   legendLine: {
-    width: 30,
-    height: 3,
+    width: 24,
+    height: 2,
     backgroundColor: '#4b5563',
-    marginRight: 12,
+    marginRight: 8,
   },
   legendText: {
-    fontSize: 14,
+    fontSize: 11,
     color: '#d1d5db',
   },
   infoBox: {
-    marginTop: 12,
-    padding: 10,
+    marginTop: 6,
+    padding: 6,
     backgroundColor: '#374151',
-    borderRadius: 6,
+    borderRadius: 4,
   },
   infoText: {
-    fontSize: 13,
+    fontSize: 10,
     color: '#9ca3af',
     textAlign: 'center',
     fontStyle: 'italic',
   },
   footer: {
-    padding: 15,
+    padding: 10,
     backgroundColor: '#1f2937',
     borderTopWidth: 1,
     borderTopColor: '#374151',

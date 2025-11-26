@@ -19,7 +19,7 @@ export default function TurnSummaryScreen({ navigation }) {
     }
   };
 
-  const recentLog = gameState.eventLog.slice(-50);
+  const recentLog = gameState.eventLog.slice(-50).reverse();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -34,7 +34,7 @@ export default function TurnSummaryScreen({ navigation }) {
 
       <ScrollView style={styles.logContainer} contentContainerStyle={styles.logContent}>
         {recentLog.map((entry, index) => (
-          <LogEntry key={index} message={entry} index={index} />
+          <LogEntry key={index} message={entry} index={recentLog.length - 1 - index} />
         ))}
       </ScrollView>
 

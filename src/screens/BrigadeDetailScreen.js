@@ -55,30 +55,6 @@ export default function BrigadeDetailScreen({ route, navigation }) {
     Alert.alert('Order Issued', `${brigade.name} stance changed to ${stance}`);
   };
 
-  const handleAssignRecon = () => {
-    if (brigade.droneCount > 0) {
-      issueOrder({
-        type: 'assignRecon',
-        brigadeId: brigade.id,
-      });
-      Alert.alert('Order Issued', `${brigade.name} will conduct reconnaissance`);
-    } else {
-      Alert.alert('No Drones', 'This brigade has no drones available for reconnaissance');
-    }
-  };
-
-  const handleCounterbattery = () => {
-    if (brigade.artilleryAmmo > 20) {
-      issueOrder({
-        type: 'counterbattery',
-        brigadeId: brigade.id,
-      });
-      Alert.alert('Order Issued', `${brigade.name} will conduct counterbattery fire`);
-    } else {
-      Alert.alert('Low Ammo', 'Insufficient artillery ammunition for counterbattery fire');
-    }
-  };
-
   const stances = ['hold', 'mobile defense', 'counterattack', 'fallback'];
 
   return (
@@ -95,19 +71,8 @@ export default function BrigadeDetailScreen({ route, navigation }) {
             <StatItem label="Strength" value={brigade.strength} />
             <StatItem label="Morale" value={brigade.morale} />
             <StatItem label="Supply" value={brigade.supply} />
-            <StatItem label="Fuel" value={brigade.fuel} />
-            <StatItem label="Ammo" value={brigade.ammo} />
             <StatItem label="Experience" value={brigade.experience} />
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Equipment</Text>
-          <View style={styles.statsGrid}>
-            <StatItem label="Drones" value={brigade.droneCount} />
-            <StatItem label="Artillery" value={brigade.artilleryAmmo} />
-            <StatItem label="Anti-Armor" value={brigade.antiArmorRating} />
-            <StatItem label="Air Defense" value={brigade.airDefenseBonus} />
+            <StatItem label="Drones" value={brigade.droneCount ?? brigade.drones ?? 0} />
           </View>
         </View>
 
@@ -131,22 +96,6 @@ export default function BrigadeDetailScreen({ route, navigation }) {
               />
             ))}
           </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Special Actions</Text>
-          <ActionButton
-            title="Assign Reconnaissance"
-            onPress={handleAssignRecon}
-            variant="secondary"
-            disabled={brigade.droneCount === 0}
-          />
-          <ActionButton
-            title="Counterbattery Fire"
-            onPress={handleCounterbattery}
-            variant="secondary"
-            disabled={brigade.artilleryAmmo < 20}
-          />
         </View>
 
         {adjacentRegions.length > 0 && (
