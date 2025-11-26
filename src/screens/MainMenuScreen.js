@@ -3,12 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
 import { useGameEngine } from '../engine/gameEngine';
+import { useLanguage } from '../context/LanguageContext';
 import { hasSavedGame } from '../storage/saveGame';
 import { DIFFICULTY_LEVELS } from '../config/difficultySettings';
 import ActionButton from '../components/ActionButton';
 
 export default function MainMenuScreen({ navigation }) {
   const { startNewGame, loadGame } = useGameEngine();
+  const { language, changeLanguage, t } = useLanguage();
   const [saveExists, setSaveExists] = useState(false);
   const [showFactionSelect, setShowFactionSelect] = useState(false);
   const [showDifficulty, setShowDifficulty] = useState(false);
@@ -66,20 +68,20 @@ export default function MainMenuScreen({ navigation }) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.content}>
-          <Text style={styles.title}>SELECT FACTION</Text>
-          <Text style={styles.subtitle}>Choose your side in the conflict</Text>
+          <Text style={styles.title}>{t('mainMenu.selectFaction')}</Text>
+          <Text style={styles.subtitle}>{t('mainMenu.chooseSide')}</Text>
 
           <TouchableOpacity
             style={[styles.factionCard, styles.ukraineCard]}
             onPress={() => handleFactionSelected('ukraine')}
           >
             <Text style={styles.factionFlag}>🇺🇦</Text>
-            <Text style={styles.factionName}>Ukraine</Text>
+            <Text style={styles.factionName}>{t('mainMenu.ukraine')}</Text>
             <Text style={styles.factionDescription}>
-              Defend your homeland. Hold Kyiv and vital supply routes against the invasion.
+              {t('mainMenu.ukraineDescription')}
             </Text>
             <Text style={styles.factionObjective}>
-              Victory: Control Kyiv and supply routes after 20 turns
+              {t('mainMenu.ukraineVictory')}
             </Text>
           </TouchableOpacity>
 
@@ -88,17 +90,17 @@ export default function MainMenuScreen({ navigation }) {
             onPress={() => handleFactionSelected('russia')}
           >
             <Text style={styles.factionFlag}>🇷🇺</Text>
-            <Text style={styles.factionName}>Russia</Text>
+            <Text style={styles.factionName}>{t('mainMenu.russia')}</Text>
             <Text style={styles.factionDescription}>
-              Execute the offensive. Capture Kyiv and cut Ukrainian supply lines.
+              {t('mainMenu.russiaDescription')}
             </Text>
             <Text style={styles.factionObjective}>
-              Victory: Capture Kyiv within 20 turns
+              {t('mainMenu.russiaVictory')}
             </Text>
           </TouchableOpacity>
 
           <ActionButton
-            title="Back"
+            title={t('mainMenu.cancel')}
             onPress={() => setShowFactionSelect(false)}
             variant="secondary"
           />
@@ -108,12 +110,31 @@ export default function MainMenuScreen({ navigation }) {
   }
 
   if (showDifficulty) {
+    const getDifficultyName = (levelId) => {
+      const map = {
+        'EASY': t('mainMenu.recruitName'),
+        'NORMAL': t('mainMenu.veteranName'),
+        'HARD': t('mainMenu.eliteName'),
+      };
+      return map[levelId] || levelId;
+    };
+
+    const getDifficultyDescription = (levelId) => {
+      const map = {
+        'EASY': t('mainMenu.recruitDescription'),
+        'NORMAL': t('mainMenu.veteranDescription'),
+        'HARD': t('mainMenu.eliteDescription'),
+      };
+      return map[levelId] || '';
+    };
+
     return (
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={styles.difficultyContent}>
           <View style={styles.titleContainer}>
-            <Text style={styles.difficultyTitle}>SELECT</Text>
-            <Text style={styles.difficultyTitle}>DIFFICULTY</Text>
+            <Text style={styles.difficultyTitle} numberOfLines={1} adjustsFontSizeToFit>
+              {t('mainMenu.difficulty')}
+            </Text>
           </View>
 
           {Object.values(DIFFICULTY_LEVELS).map(level => (
@@ -125,19 +146,19 @@ export default function MainMenuScreen({ navigation }) {
               ]}
               onPress={() => setSelectedDifficulty(level)}
             >
-              <Text style={styles.difficultyName}>{level.name}</Text>
-              <Text style={styles.difficultyDescription}>{level.description}</Text>
+              <Text style={styles.difficultyName}>{getDifficultyName(level.id)}</Text>
+              <Text style={styles.difficultyDescription}>{getDifficultyDescription(level.id)}</Text>
             </TouchableOpacity>
           ))}
 
           <View style={styles.buttonContainer}>
             <ActionButton
-              title="Start Campaign"
+              title={t('mainMenu.start')}
               onPress={handleStartWithDifficulty}
               variant="primary"
             />
             <ActionButton
-              title="Back"
+              title={t('mainMenu.cancel')}
               onPress={() => {
                 setShowDifficulty(false);
                 setShowFactionSelect(true);
@@ -154,31 +175,50 @@ export default function MainMenuScreen({ navigation }) {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.titleContainer}>
-          <Text style={styles.title}>EASTERN</Text>
-          <Text style={styles.title}>FRONT</Text>
+          <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit>{t('mainMenu.title').split('\n')[0]}</Text>
+          <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit>{t('mainMenu.title').split('\n')[1]}</Text>
         </View>
-        <Text style={styles.subtitle}>A Modern Operational Wargame</Text>
-        <Text style={styles.description}>Ukraine 2022</Text>
+        <Text style={styles.subtitle}>{t('mainMenu.subtitle')}</Text>
+        <Text style={styles.description}>{t('mainMenu.description')}</Text>
 
         <View style={styles.buttonContainer}>
           <ActionButton
-            title="New Campaign"
+            title={t('mainMenu.newCampaign')}
             onPress={handleNewGame}
             variant="primary"
           />
 
           <ActionButton
-            title="Continue Campaign"
+            title={t('mainMenu.loadGame')}
             onPress={handleContinue}
             variant="secondary"
             disabled={!saveExists}
           />
 
           <ActionButton
-            title="How to Play"
+            title={t('mainMenu.howToPlay')}
             onPress={handleHowToPlay}
             variant="secondary"
           />
+        </View>
+
+        <View style={styles.languageToggle}>
+          <TouchableOpacity
+            style={[styles.languageButton, language === 'en' && styles.languageButtonActive]}
+            onPress={() => changeLanguage('en')}
+          >
+            <Text style={[styles.languageText, language === 'en' && styles.languageTextActive]}>
+              English
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.languageButton, language === 'ru' && styles.languageButtonActive]}
+            onPress={() => changeLanguage('ru')}
+          >
+            <Text style={[styles.languageText, language === 'ru' && styles.languageTextActive]}>
+              Русский
+            </Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.footer}>
@@ -222,6 +262,8 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 20,
     lineHeight: 64,
+    flexShrink: 1,
+    numberOfLines: 1,
   },
   subtitle: {
     fontSize: 18,
@@ -329,5 +371,32 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '600',
     fontStyle: 'italic',
+  },
+  languageToggle: {
+    flexDirection: 'row',
+    marginTop: 20,
+    marginBottom: 10,
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#374151',
+  },
+  languageButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: '#1f2937',
+    alignItems: 'center',
+  },
+  languageButtonActive: {
+    backgroundColor: '#3b82f6',
+  },
+  languageText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#9ca3af',
+  },
+  languageTextActive: {
+    color: '#ffffff',
   },
 });

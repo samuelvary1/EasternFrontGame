@@ -52,7 +52,7 @@ export default function BrigadeDetailScreen({ route, navigation }) {
       stance,
     });
     setSelectedStance(stance);
-    Alert.alert('Order Issued', `${brigade.name} stance changed to ${stance}`);
+    Alert.alert('Order Issued', `${brigade.name} orders changed to ${stance}`);
   };
 
   const stances = ['hold', 'mobile defense', 'counterattack', 'fallback'];
@@ -83,16 +83,16 @@ export default function BrigadeDetailScreen({ route, navigation }) {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Change Stance</Text>
+          <Text style={styles.sectionTitle}>Change Orders</Text>
           <Text style={styles.currentStance}>Current: {brigade.stance}</Text>
-          <View style={styles.stanceButtons}>
+          <View style={styles.ordersButtons}>
             {stances.map(stance => (
               <ActionButton
                 key={stance}
                 title={stance}
                 onPress={() => handleChangeStance(stance)}
                 variant={stance === brigade.stance ? 'primary' : 'secondary'}
-                style={styles.stanceButton}
+                style={styles.ordersButton}
               />
             ))}
           </View>
@@ -168,13 +168,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   section: {
-    marginBottom: 25,
+    marginBottom: 24,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#93c5fd',
+    fontWeight: '700',
+    color: '#60a5fa',
     marginBottom: 12,
+    marginTop: 8,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -209,14 +210,14 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     marginBottom: 10,
   },
-  stanceButtons: {
+  ordersButtons: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    justifyContent: 'space-between',
   },
-  stanceButton: {
-    flex: 1,
-    minWidth: 140,
+  ordersButton: {
+    width: '48%',
+    marginBottom: 8,
   },
   errorText: {
     fontSize: 18,

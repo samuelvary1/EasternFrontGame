@@ -1,9 +1,9 @@
 // RegionCard component - displays region information
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
-export default function RegionCard({ region }) {
+export default function RegionCard({ region, onPress }) {
   const getControlColor = (control) => {
     if (control === 'ukraine') return '#3b82f6';
     if (control === 'russia') return '#ef4444';
@@ -16,8 +16,10 @@ export default function RegionCard({ region }) {
     return 'CONTESTED';
   };
 
+  const CardWrapper = onPress ? TouchableOpacity : View;
+
   return (
-    <View style={styles.card}>
+    <CardWrapper style={styles.card} onPress={onPress}>
       <View style={styles.header}>
         <Text style={styles.name}>{region.name}</Text>
         <View style={[styles.controlBadge, { backgroundColor: getControlColor(region.control) }]}>
@@ -66,7 +68,7 @@ export default function RegionCard({ region }) {
           </View>
         )}
       </View>
-    </View>
+    </CardWrapper>
   );
 }
 

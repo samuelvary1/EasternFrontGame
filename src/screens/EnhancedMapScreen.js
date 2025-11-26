@@ -4,14 +4,29 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, Dimensions, TouchableOpacity } from 'react-native';
 import Svg, { Line, Polygon, Circle, Text as SvgText } from 'react-native-svg';
 import { useGameEngine } from '../engine/gameEngine';
+import { useLanguage } from '../context/LanguageContext';
 import ActionButton from '../components/ActionButton';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const MAP_WIDTH = SCREEN_WIDTH - 20;
 const MAP_HEIGHT = SCREEN_WIDTH - 20;
 
+const getWeatherDisplay = (weather, t) => {
+  const weatherMap = {
+    'clear': { emoji: '☀️', key: 'weather.clear' },
+    'rain': { emoji: '🌧️', key: 'weather.rain' },
+    'mud': { emoji: '🟤', key: 'weather.mud' },
+    'snow': { emoji: '❄️', key: 'weather.snow' },
+    'fog': { emoji: '🌫️', key: 'weather.fog' },
+  };
+  const weatherInfo = weatherMap[weather?.toLowerCase()] || { emoji: '🌤️', key: weather };
+  const label = weatherInfo.key.startsWith('weather.') ? t(weatherInfo.key) : weather;
+  return `${weatherInfo.emoji} ${label}`;
+};
+
 export default function EnhancedMapScreen({ navigation }) {
   const { gameState } = useGameEngine();
+  const { t } = useLanguage();
   const [selectedRegion, setSelectedRegion] = useState(null);
 
   if (!gameState.gameStarted) {
@@ -191,8 +206,8 @@ export default function EnhancedMapScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Tactical Map - Turn {gameState.turn}</Text>
-        <Text style={styles.weather}>{gameState.weather.toUpperCase()}</Text>
+        <Text style={styles.title}>{t('map.title')} - {t('missionControl.turn')} {gameState.turn}</Text>
+        <Text style={styles.weather}>{getWeatherDisplay(gameState.weather, t)}</Text>
       </View>
 
       <ScrollView style={styles.scrollContainer}>

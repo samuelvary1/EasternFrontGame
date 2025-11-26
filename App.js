@@ -4,19 +4,24 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { GameEngineProvider } from './src/engine/gameEngine';
+import { LanguageProvider } from './src/context/LanguageContext';
 import MainMenuScreen from './src/screens/MainMenuScreen';
-import CampaignScreen from './src/screens/CampaignScreen';
+import MissionControlScreen from './src/screens/MissionControlScreen';
+import BrigadesListScreen from './src/screens/BrigadesListScreen';
+import RegionsListScreen from './src/screens/RegionsListScreen';
 import BrigadeDetailScreen from './src/screens/BrigadeDetailScreen';
+import RegionDetailScreen from './src/screens/RegionDetailScreen';
 import TurnSummaryScreen from './src/screens/TurnSummaryScreen';
 import MapScreen from './src/screens/EnhancedMapScreen';
-import RegionDetailScreen from './src/screens/RegionDetailScreen';
+import PendingOrdersScreen from './src/screens/PendingOrdersScreen';
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
-    <GameEngineProvider>
-      <NavigationContainer>
+    <LanguageProvider>
+      <GameEngineProvider>
+        <NavigationContainer>
         <Stack.Navigator
           initialRouteName="MainMenu"
           screenOptions={{
@@ -36,8 +41,18 @@ export default function App() {
           />
           <Stack.Screen
             name="Campaign"
-            component={CampaignScreen}
-            options={{ title: 'Campaign', headerLeft: () => null }}
+            component={MissionControlScreen}
+            options={{ title: 'Mission Control', headerLeft: () => null }}
+          />
+          <Stack.Screen
+            name="BrigadesList"
+            component={BrigadesListScreen}
+            options={{ title: 'Force Management' }}
+          />
+          <Stack.Screen
+            name="RegionsList"
+            component={RegionsListScreen}
+            options={{ title: 'Territory Intel' }}
           />
           <Stack.Screen
             name="BrigadeDetail"
@@ -55,6 +70,11 @@ export default function App() {
             options={{ title: 'Tactical Map' }}
           />
           <Stack.Screen
+            name="PendingOrders"
+            component={PendingOrdersScreen}
+            options={{ title: 'Pending Orders' }}
+          />
+          <Stack.Screen
             name="TurnSummary"
             component={TurnSummaryScreen}
             options={{ title: 'Turn Summary', headerLeft: () => null }}
@@ -62,5 +82,6 @@ export default function App() {
         </Stack.Navigator>
       </NavigationContainer>
     </GameEngineProvider>
+    </LanguageProvider>
   );
 }

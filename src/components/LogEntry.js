@@ -5,19 +5,23 @@ import { View, Text, StyleSheet } from 'react-native';
 
 export default function LogEntry({ message, index }) {
   const isEvent = message.includes('[EVENT]');
+  const isPlayer = message.includes('[PLAYER]');
   const isCritical = message.includes('CRITICAL') || message.includes('DEFEAT') || message.includes('VICTORY');
   const isHeader = message.startsWith('===');
 
   const getStyle = () => {
     if (isHeader) return styles.header;
     if (isCritical) return styles.critical;
+    if (isPlayer) return styles.player;
     if (isEvent) return styles.event;
     return styles.normal;
   };
 
+  const displayMessage = message.replace('[PLAYER]', '').trim();
+
   return (
     <View style={styles.container}>
-      <Text style={getStyle()}>{message}</Text>
+      <Text style={getStyle()}>{displayMessage}</Text>
     </View>
   );
 }
@@ -37,6 +41,16 @@ const styles = StyleSheet.create({
     color: '#fbbf24',
     lineHeight: 20,
     fontWeight: '500',
+  },
+  player: {
+    fontSize: 14,
+    color: '#60a5fa',
+    lineHeight: 20,
+    fontWeight: '600',
+    backgroundColor: 'rgba(96, 165, 250, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   critical: {
     fontSize: 15,

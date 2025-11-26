@@ -13,6 +13,17 @@ import { resolveCombat, resolveDefensiveBattle } from './combatResolver';
 import { computeAIActions, applyAIAction } from './aiSystem';
 import { triggerRandomEvents } from './eventsSystem';
 
+// Helper function for stance impact descriptions
+function getStanceImpact(oldStance, newStance) {
+  const impacts = {
+    'hold': '+20% defense, no movement',
+    'mobile defense': 'Balanced combat, can react',
+    'offensive': '+30% attack, -10% defense',
+    'counterattack': 'Auto-strike attackers, -supplies',
+  };
+  return impacts[newStance] || '';
+}
+
 const GameEngineContext = createContext();
 
 export function useGameEngine() {
@@ -113,6 +124,19 @@ export function GameEngineProvider({ children }) {
     }));
   }, []);
 
+  const cancelOrder = useCallback((orderId) => {
+    setGameState(prev => ({
+      ...prev,
+      orders: prev.orders.filter((order, index) => {
+        // Support both order.id and index-based identification
+        if (order.id !== undefined) {
+          return order.id !== orderId;
+        }
+        return index !== orderId;
+      }),
+    }));
+  }, []);
+
   const endTurn = useCallback(() => {
     setGameState(prev => {
       const turnLog = [];
@@ -131,13 +155,15 @@ export function GameEngineProvider({ children }) {
           if (brigadeIdx >= 0) {
             brigades[brigadeIdx] = consumeSuppliesForMovement(brigades[brigadeIdx]);
             brigades[brigadeIdx].location = order.targetRegion;
-            turnLog.push(`${brigades[brigadeIdx].name} moved to ${order.targetRegion}.`);
+            turnLog.push(`[PLAYER] ${brigades[brigadeIdx].name} moved to ${order.targetRegion}. (-10 supplies, repositioned)`);
           }
         } else if (order.type === 'stance') {
           const brigadeIdx = brigades.findIndex(b => b.id === order.brigadeId);
           if (brigadeIdx >= 0) {
+            const oldStance = brigades[brigadeIdx].stance;
             brigades[brigadeIdx].stance = order.stance;
-            turnLog.push(`${brigades[brigadeIdx].name} changed stance to ${order.stance}.`);
+            const impact = getStanceImpact(oldStance, order.stance);
+            turnLog.push(`[PLAYER] ${brigades[brigadeIdx].name} changed orders to ${order.stance}. ${impact}`);
           }
         } else if (order.type === 'attack') {
           const brigadeIdx = brigades.findIndex(b => b.id === order.brigadeId);
@@ -145,6 +171,8 @@ export function GameEngineProvider({ children }) {
           
           if (brigadeIdx >= 0 && targetRegion) {
             brigades[brigadeIdx] = consumeSuppliesForCombat(brigades[brigadeIdx]);
+            
+            turnLog.push(`[PLAYER] ${brigades[brigadeIdx].name} attacks ${order.targetRegion}. (-20 supplies, combat initiated)`);
             
             const combatResult = resolveCombat(brigades[brigadeIdx], targetRegion, weather, turnLog);
             brigades[brigadeIdx] = combatResult.brigade;
@@ -296,6 +324,7 @@ export function GameEngineProvider({ children }) {
     saveGame,
     issueOrder,
     clearOrders,
+    cancelOrder,
     endTurn,
   };
 
