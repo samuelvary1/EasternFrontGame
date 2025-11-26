@@ -12,7 +12,7 @@ import RegionsListScreen from './src/screens/RegionsListScreen';
 import BrigadeDetailScreen from './src/screens/BrigadeDetailScreen';
 import RegionDetailScreen from './src/screens/RegionDetailScreen';
 import TurnSummaryScreen from './src/screens/TurnSummaryScreen';
-import MapScreen from './src/screens/EnhancedMapScreen';
+import MapScreen from './src/screens/MapScreen';
 import PendingOrdersScreen from './src/screens/PendingOrdersScreen';
 
 const Stack = createNativeStackNavigator();

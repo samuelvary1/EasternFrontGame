@@ -1,13 +1,13 @@
 // MapScreen - Visual representation of the operational situation
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Dimensions } from 'react-native';
 import { useGameEngine } from '../engine/gameEngine';
 import ActionButton from '../components/ActionButton';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
-const MAP_WIDTH = SCREEN_WIDTH - 40;
-const MAP_HEIGHT = 600;
+const MAP_WIDTH = SCREEN_WIDTH - 30;
+const MAP_HEIGHT = 420;
 
 export default function MapScreen({ navigation }) {
   const { gameState } = useGameEngine();
@@ -21,34 +21,37 @@ export default function MapScreen({ navigation }) {
     );
   }
 
-  // Define region positions on the map (x, y coordinates as percentages)
+  // Geographic positions - arranged in a grid matching adjacency
+  // Using absolute pixel positions for precise border alignment
   const regionPositions = {
-    'kyiv_center': { x: 50, y: 50, width: 80, height: 60 },
-    'kyiv_northwest': { x: 35, y: 25, width: 70, height: 50 },
-    'kyiv_south': { x: 50, y: 75, width: 70, height: 45 },
-    'chernihiv_approach': { x: 60, y: 10, width: 65, height: 45 },
-    'belarus_border': { x: 25, y: 5, width: 60, height: 40 },
-    'zhytomyr_highway': { x: 20, y: 75, width: 65, height: 40 },
-    'western_supply': { x: 5, y: 85, width: 60, height: 40 },
-    'kharkiv_front': { x: 85, y: 40, width: 70, height: 55 },
-    'kharkiv_east': { x: 90, y: 25, width: 55, height: 45 },
-    'izyum_axis': { x: 85, y: 65, width: 60, height: 45 },
-    'russian_border': { x: 95, y: 15, width: 50, height: 40 },
+    // Row 1 (North) - y: 0
+    'belarus_border': { x: 0, y: 0, width: MAP_WIDTH * 0.25, height: 70 },
+    'chernihiv': { x: MAP_WIDTH * 0.25, y: 0, width: MAP_WIDTH * 0.25, height: 70 },
+    'sumy': { x: MAP_WIDTH * 0.50, y: 0, width: MAP_WIDTH * 0.25, height: 70 },
+    
+    // Row 2 (North-Central) - y: 70
+    'hostomel': { x: 0, y: 70, width: MAP_WIDTH * 0.25, height: 70 },
+    'brovary': { x: MAP_WIDTH * 0.25, y: 70, width: MAP_WIDTH * 0.25, height: 70 },
+    'kharkiv': { x: MAP_WIDTH * 0.50, y: 70, width: MAP_WIDTH * 0.50, height: 70 },
+    
+    // Row 3 (Central-West) - y: 140
+    'bucha': { x: 0, y: 140, width: MAP_WIDTH * 0.20, height: 70 },
+    'kyiv': { x: MAP_WIDTH * 0.20, y: 140, width: MAP_WIDTH * 0.30, height: 70 },
+    'poltava': { x: MAP_WIDTH * 0.50, y: 140, width: MAP_WIDTH * 0.25, height: 70 },
+    'donbas': { x: MAP_WIDTH * 0.75, y: 140, width: MAP_WIDTH * 0.25, height: 70 },
+    
+    // Row 4 (Central) - y: 210
+    'zhytomyr': { x: 0, y: 210, width: MAP_WIDTH * 0.20, height: 70 },
+    'vasylkiv': { x: MAP_WIDTH * 0.20, y: 210, width: MAP_WIDTH * 0.30, height: 70 },
+    'dnipro': { x: MAP_WIDTH * 0.50, y: 210, width: MAP_WIDTH * 0.30, height: 70 },
+    'mariupol': { x: MAP_WIDTH * 0.80, y: 210, width: MAP_WIDTH * 0.20, height: 70 },
+    
+    // Row 5 (South) - y: 280
+    'lviv': { x: 0, y: 280, width: MAP_WIDTH * 0.30, height: 70 },
+    'odesa': { x: MAP_WIDTH * 0.30, y: 280, width: MAP_WIDTH * 0.20, height: 70 },
+    'kherson': { x: MAP_WIDTH * 0.50, y: 280, width: MAP_WIDTH * 0.25, height: 70 },
+    'zaporizhzhia': { x: MAP_WIDTH * 0.75, y: 280, width: MAP_WIDTH * 0.25, height: 70 },
   };
-
-  // Define connections (adjacency lines)
-  const connections = [
-    ['kyiv_center', 'kyiv_northwest'],
-    ['kyiv_center', 'kyiv_south'],
-    ['kyiv_northwest', 'chernihiv_approach'],
-    ['kyiv_northwest', 'belarus_border'],
-    ['kyiv_south', 'zhytomyr_highway'],
-    ['zhytomyr_highway', 'western_supply'],
-    ['chernihiv_approach', 'belarus_border'],
-    ['kharkiv_front', 'kharkiv_east'],
-    ['kharkiv_front', 'izyum_axis'],
-    ['kharkiv_east', 'russian_border'],
-  ];
 
   const getRegionColor = (region) => {
     if (region.control === 'ukraine') return '#3b82f6';
@@ -56,13 +59,8 @@ export default function MapScreen({ navigation }) {
     return '#f59e0b';
   };
 
-  const getRegionBorderColor = (region) => {
-    if (region.isObjective) return '#fbbf24';
-    return '#1f2937';
-  };
-
   const handleRegionPress = (region) => {
-    setSelectedRegion(region);
+    setSelectedRegion(selectedRegion?.id === region.id ? null : region);
   };
 
   const renderRegion = (region) => {
@@ -71,85 +69,44 @@ export default function MapScreen({ navigation }) {
 
     const brigadeCount = gameState.brigades.filter(b => b.location === region.id).length;
     const hasEnemies = region.enemyStrengthEstimate > 0;
+    const isSelected = selectedRegion?.id === region.id;
 
     return (
-      <View
+      <TouchableOpacity
         key={region.id}
         style={[
           styles.region,
           {
-            left: `${pos.x}%`,
-            top: `${pos.y}%`,
+            left: pos.x,
+            top: pos.y,
             width: pos.width,
             height: pos.height,
             backgroundColor: getRegionColor(region),
-            borderColor: getRegionBorderColor(region),
-            borderWidth: region.isObjective ? 3 : 1,
+            borderColor: '#1f2937',
+            borderWidth: 1,
           },
+          isSelected && styles.regionSelected,
         ]}
-        onStartShouldSetResponder={() => {
-          handleRegionPress(region);
-          return true;
-        }}
+        onPress={() => handleRegionPress(region)}
+        activeOpacity={0.7}
       >
-        <Text style={styles.regionName} numberOfLines={2}>
-          {region.name.split(' ').slice(0, 2).join(' ')}
+        <Text style={styles.regionName} numberOfLines={1} adjustsFontSizeToFit>
+          {region.name}
         </Text>
-        
-        {brigadeCount > 0 && (
-          <View style={styles.brigadeIndicator}>
-            <Text style={styles.brigadeCount}>🛡️ {brigadeCount}</Text>
-          </View>
-        )}
-        
-        {hasEnemies && (
-          <View style={styles.enemyIndicator}>
-            <Text style={styles.enemyStrength}>⚔️ {region.enemyStrengthEstimate}</Text>
-          </View>
+
+        {region.isObjective && (
+          <Text style={styles.objectiveMarker}>⭐</Text>
         )}
 
-        {region.electronicWarfareActive && (
-          <View style={styles.ewIndicator}>
-            <Text style={styles.ewIcon}>⚡</Text>
-          </View>
-        )}
-
-        {region.artilleryIntensity > 30 && (
-          <View style={styles.artilleryIndicator}>
-            <Text style={styles.artilleryIcon}>💥</Text>
-          </View>
-        )}
-      </View>
-    );
-  };
-
-  const renderConnection = (connection, index) => {
-    const [fromId, toId] = connection;
-    const fromPos = regionPositions[fromId];
-    const toPos = regionPositions[toId];
-    
-    if (!fromPos || !toPos) return null;
-
-    const fromRegion = gameState.regions.find(r => r.id === fromId);
-    const toRegion = gameState.regions.find(r => r.id === toId);
-
-    // Determine if this is a frontline
-    const isFrontline = fromRegion?.control !== toRegion?.control;
-
-    return (
-      <View
-        key={`connection-${index}`}
-        style={[
-          styles.connection,
-          {
-            left: `${fromPos.x}%`,
-            top: `${fromPos.y}%`,
-            width: Math.abs(toPos.x - fromPos.x) + '%',
-            height: Math.abs(toPos.y - fromPos.y) + '%',
-            backgroundColor: isFrontline ? '#ef4444' : '#374151',
-          },
-        ]}
-      />
+        <View style={styles.regionIcons}>
+          {brigadeCount > 0 && (
+            <Text style={styles.iconText}>🛡️{brigadeCount}</Text>
+          )}
+          {hasEnemies && (
+            <Text style={styles.iconText}>⚔️{region.enemyStrengthEstimate}</Text>
+          )}
+        </View>
+      </TouchableOpacity>
     );
   };
 
@@ -160,28 +117,20 @@ export default function MapScreen({ navigation }) {
         <Text style={styles.weather}>{gameState.weather.toUpperCase()}</Text>
       </View>
 
-      <ScrollView 
-        style={styles.scrollContainer}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={true}
-      >
+      <ScrollView style={styles.scrollContainer}>
         <View style={styles.mapContainer}>
           <View style={styles.map}>
-            {/* Render connections first (behind regions) */}
-            {connections.map((conn, idx) => renderConnection(conn, idx))}
-            
-            {/* Render regions */}
             {gameState.regions.map(region => renderRegion(region))}
           </View>
 
           <View style={styles.legend}>
             <View style={styles.legendRow}>
               <View style={[styles.legendBox, { backgroundColor: '#3b82f6' }]} />
-              <Text style={styles.legendText}>Ukraine Controlled</Text>
+              <Text style={styles.legendText}>Ukraine</Text>
             </View>
             <View style={styles.legendRow}>
               <View style={[styles.legendBox, { backgroundColor: '#ef4444' }]} />
-              <Text style={styles.legendText}>Enemy Controlled</Text>
+              <Text style={styles.legendText}>Russia</Text>
             </View>
             <View style={styles.legendRow}>
               <View style={[styles.legendBox, { backgroundColor: '#f59e0b' }]} />
@@ -189,19 +138,15 @@ export default function MapScreen({ navigation }) {
             </View>
             <View style={styles.legendRow}>
               <Text style={styles.legendIcon}>🛡️</Text>
-              <Text style={styles.legendText}>Your Brigades</Text>
+              <Text style={styles.legendText}>Your Forces</Text>
             </View>
             <View style={styles.legendRow}>
               <Text style={styles.legendIcon}>⚔️</Text>
-              <Text style={styles.legendText}>Enemy Forces</Text>
+              <Text style={styles.legendText}>Enemy</Text>
             </View>
             <View style={styles.legendRow}>
-              <Text style={styles.legendIcon}>⚡</Text>
-              <Text style={styles.legendText}>EW Active</Text>
-            </View>
-            <View style={styles.legendRow}>
-              <Text style={styles.legendIcon}>💥</Text>
-              <Text style={styles.legendText}>Artillery</Text>
+              <Text style={styles.legendIcon}>⭐</Text>
+              <Text style={styles.legendText}>Objective</Text>
             </View>
           </View>
         </View>
@@ -209,25 +154,68 @@ export default function MapScreen({ navigation }) {
         {selectedRegion && (
           <View style={styles.selectedInfo}>
             <Text style={styles.selectedTitle}>{selectedRegion.name}</Text>
-            <Text style={styles.selectedDetail}>Control: {selectedRegion.control.toUpperCase()}</Text>
-            <Text style={styles.selectedDetail}>Terrain: {selectedRegion.terrain}</Text>
-            <Text style={styles.selectedDetail}>Supply: {selectedRegion.baseSupply}</Text>
-            {selectedRegion.enemyStrengthEstimate > 0 && (
-              <Text style={styles.selectedDetail}>Enemy Strength: {selectedRegion.enemyStrengthEstimate}</Text>
-            )}
             
+            <View style={styles.infoGrid}>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Control</Text>
+                <Text style={[styles.infoValue, { color: getRegionColor(selectedRegion) }]}>
+                  {selectedRegion.control.toUpperCase()}
+                </Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Terrain</Text>
+                <Text style={styles.infoValue}>{selectedRegion.terrain}</Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Supply</Text>
+                <Text style={styles.infoValue}>{selectedRegion.baseSupply}</Text>
+              </View>
+            </View>
+
+            {selectedRegion.enemyStrengthEstimate > 0 && (
+              <View style={styles.enemySection}>
+                <Text style={styles.enemyText}>
+                  Enemy Strength: {selectedRegion.enemyStrengthEstimate}
+                </Text>
+              </View>
+            )}
+
             {gameState.brigades.filter(b => b.location === selectedRegion.id).length > 0 && (
-              <View style={styles.brigadesInRegion}>
+              <View style={styles.brigadesSection}>
                 <Text style={styles.brigadesTitle}>Your Forces:</Text>
                 {gameState.brigades
                   .filter(b => b.location === selectedRegion.id)
                   .map(b => (
                     <Text key={b.id} style={styles.brigadeItem}>
-                      • {b.name} ({b.strength})
+                      • {b.name} - STR:{b.strength} MOR:{b.morale}
                     </Text>
                   ))}
               </View>
             )}
+
+            <View style={styles.adjacentSection}>
+              <Text style={styles.adjacentTitle}>Adjacent:</Text>
+              <View style={styles.adjacentList}>
+                {selectedRegion.adjacency.map(adjId => {
+                  const adjRegion = gameState.regions.find(r => r.id === adjId);
+                  return (
+                    <View key={adjId} style={styles.adjacentChip}>
+                      <View style={[styles.adjacentDot, { backgroundColor: getRegionColor(adjRegion) }]} />
+                      <Text style={styles.adjacentName}>
+                        {adjRegion?.name.split(' ')[0] || adjId}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.viewDetailsButton}
+              onPress={() => navigation.navigate('RegionDetail', { regionId: selectedRegion.id })}
+            >
+              <Text style={styles.viewDetailsText}>View Full Details →</Text>
+            </TouchableOpacity>
           </View>
         )}
       </ScrollView>
@@ -249,7 +237,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#111827',
   },
   header: {
-    padding: 20,
+    padding: 15,
     backgroundColor: '#1f2937',
     borderBottomWidth: 1,
     borderBottomColor: '#374151',
@@ -258,55 +246,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: '#f3f4f6',
   },
   weather: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: '#93c5fd',
     backgroundColor: '#1e3a8a',
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
   },
   scrollContainer: {
     flex: 1,
   },
-  scrollContent: {
-    padding: 20,
-  },
   mapContainer: {
-    marginBottom: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
   },
   map: {
     width: MAP_WIDTH,
     height: MAP_HEIGHT,
-    backgroundColor: '#1f2937',
-    borderRadius: 12,
+    backgroundColor: '#0f172a',
+    borderRadius: 8,
     borderWidth: 2,
     borderColor: '#374151',
     position: 'relative',
-    marginBottom: 20,
-  },
-  connection: {
-    position: 'absolute',
-    height: 2,
-    opacity: 0.3,
-    zIndex: 1,
+    marginBottom: 15,
   },
   region: {
     position: 'absolute',
-    borderRadius: 8,
-    padding: 6,
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 2,
-    opacity: 0.85,
+    padding: 6,
+  },
+  regionSelected: {
+    borderWidth: 3,
+    borderColor: '#fbbf24',
+    zIndex: 10,
   },
   regionName: {
-    fontSize: 9,
+    fontSize: 11,
     fontWeight: '700',
     color: '#ffffff',
     textAlign: 'center',
@@ -314,112 +296,162 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
   },
-  brigadeIndicator: {
+  objectiveMarker: {
+    fontSize: 14,
     position: 'absolute',
     top: 2,
     right: 2,
-    backgroundColor: '#10b981',
-    borderRadius: 4,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
   },
-  brigadeCount: {
-    fontSize: 8,
-    fontWeight: '700',
-    color: '#ffffff',
+  regionIcons: {
+    flexDirection: 'row',
+    gap: 4,
+    marginTop: 3,
   },
-  enemyIndicator: {
-    position: 'absolute',
-    top: 2,
-    left: 2,
-    backgroundColor: '#dc2626',
-    borderRadius: 4,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-  },
-  enemyStrength: {
-    fontSize: 8,
-    fontWeight: '700',
-    color: '#ffffff',
-  },
-  ewIndicator: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
-  },
-  ewIcon: {
+  iconText: {
     fontSize: 10,
-  },
-  artilleryIndicator: {
-    position: 'absolute',
-    bottom: 2,
-    left: 2,
-  },
-  artilleryIcon: {
-    fontSize: 10,
+    color: '#ffffff',
+    fontWeight: '700',
+    textShadowColor: '#000',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   legend: {
     backgroundColor: '#1f2937',
-    borderRadius: 8,
-    padding: 15,
+    borderRadius: 6,
+    padding: 8,
     borderWidth: 1,
     borderColor: '#374151',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginHorizontal: 15,
+    marginBottom: 10,
   },
   legendRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 4,
+    minWidth: '30%',
   },
   legendBox: {
-    width: 16,
-    height: 16,
+    width: 14,
+    height: 14,
     borderRadius: 3,
-    marginRight: 10,
+    marginRight: 6,
   },
   legendIcon: {
-    fontSize: 14,
-    marginRight: 10,
-    width: 20,
+    fontSize: 12,
+    marginRight: 6,
   },
   legendText: {
-    fontSize: 13,
+    fontSize: 11,
     color: '#d1d5db',
   },
   selectedInfo: {
     backgroundColor: '#1f2937',
     borderRadius: 8,
-    padding: 15,
+    padding: 12,
+    marginHorizontal: 15,
+    marginBottom: 15,
     borderWidth: 2,
     borderColor: '#3b82f6',
-    marginBottom: 20,
   },
   selectedTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: '#93c5fd',
-    marginBottom: 10,
+    marginBottom: 12,
   },
-  selectedDetail: {
+  infoGrid: {
+    flexDirection: 'row',
+    gap: 15,
+    marginBottom: 12,
+  },
+  infoItem: {
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 11,
+    color: '#6b7280',
+    marginBottom: 2,
+  },
+  infoValue: {
     fontSize: 14,
-    color: '#d1d5db',
-    marginVertical: 2,
+    fontWeight: '700',
+    color: '#e5e7eb',
   },
-  brigadesInRegion: {
-    marginTop: 10,
-    paddingTop: 10,
+  enemySection: {
+    backgroundColor: '#7f1d1d',
+    padding: 8,
+    borderRadius: 6,
+    marginBottom: 12,
+  },
+  enemyText: {
+    fontSize: 13,
+    color: '#fca5a5',
+    fontWeight: '600',
+  },
+  brigadesSection: {
+    marginBottom: 12,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#374151',
   },
   brigadesTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#10b981',
-    marginBottom: 5,
+    marginBottom: 6,
   },
   brigadeItem: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#d1d5db',
     marginVertical: 2,
+  },
+  adjacentSection: {
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#374151',
+    marginBottom: 12,
+  },
+  adjacentTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#60a5fa',
+    marginBottom: 8,
+  },
+  adjacentList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  adjacentChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#374151',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  adjacentDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 4,
+  },
+  adjacentName: {
+    fontSize: 11,
+    color: '#d1d5db',
+  },
+  viewDetailsButton: {
+    backgroundColor: '#1e40af',
+    padding: 10,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  viewDetailsText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#93c5fd',
   },
   footer: {
     padding: 15,
