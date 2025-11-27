@@ -14,12 +14,20 @@ export default function TurnSummaryScreen({ navigation }) {
   const [currentCombatIndex, setCurrentCombatIndex] = useState(0);
   const [combatEvents, setCombatEvents] = useState([]);
   const scrollViewRef = React.useRef(null);
+  const animationsPlayedForTurn = React.useRef(null);
 
   useEffect(() => {
     console.log('=== TurnSummaryScreen useEffect running ===');
     console.log('Current turn:', gameState.turn);
     console.log('Event log length:', gameState.eventLog.length);
     console.log('Last 5 log entries:', gameState.eventLog.slice(-5));
+    console.log('Animations already played for turn:', animationsPlayedForTurn.current);
+    
+    // Check if we've already played animations for this turn
+    if (animationsPlayedForTurn.current === gameState.turn) {
+      console.log('Animations already played for this turn - skipping');
+      return;
+    }
     
     // Extract combat events from the CURRENT turn only
     // The turn marker has a newline prefix, so search for the core text
@@ -177,6 +185,9 @@ export default function TurnSummaryScreen({ navigation }) {
     
     console.log('Combats found:', combats.length);
     console.log('Combat details:', JSON.stringify(combats, null, 2));
+    
+    // Mark that we're about to play animations for this turn
+    animationsPlayedForTurn.current = gameState.turn;
     
     // Start showing combat animations if any exist
     if (combats.length > 0) {

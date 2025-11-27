@@ -1,7 +1,8 @@
 // MainMenuScreen - entry point for the game
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGameEngine } from '../engine/gameEngine';
 import { useLanguage } from '../context/LanguageContext';
 import { hasSavedGame } from '../storage/saveGame';
