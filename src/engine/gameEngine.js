@@ -43,6 +43,7 @@ export function GameEngineProvider({ children }) {
     victory: false,
     difficulty: DEFAULT_DIFFICULTY,
     playerFaction: 'ukraine',
+    animatedBattles: [],
   });
 
   const startNewGame = useCallback((difficulty = DEFAULT_DIFFICULTY, playerFaction = 'ukraine') => {
@@ -94,6 +95,7 @@ export function GameEngineProvider({ children }) {
       victory: false,
       difficulty,
       playerFaction,
+      animatedBattles: [],
     });
   }, []);
 
@@ -134,6 +136,13 @@ export function GameEngineProvider({ children }) {
         }
         return index !== orderId;
       }),
+    }));
+  }, []);
+
+  const markBattleAnimated = useCallback((battleId) => {
+    setGameState(prev => ({
+      ...prev,
+      animatedBattles: [...prev.animatedBattles, battleId],
     }));
   }, []);
 
@@ -331,6 +340,7 @@ export function GameEngineProvider({ children }) {
     clearOrders,
     cancelOrder,
     endTurn,
+    markBattleAnimated,
   };
 
   return (

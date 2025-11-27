@@ -9,7 +9,7 @@ import ThreeDDiceRoll from '../components/ThreeDDiceRoll';
 import CombatLogEntry from '../components/CombatLogEntry';
 
 export default function TurnSummaryScreen({ navigation }) {
-  const { gameState, saveGame } = useGameEngine();
+  const { gameState, saveGame, markBattleAnimated } = useGameEngine();
   const [diceAnimationVisible, setDiceAnimationVisible] = useState(false);
   const [currentCombatIndex, setCurrentCombatIndex] = useState(0);
   const [combatEvents, setCombatEvents] = useState([]);
@@ -166,7 +166,12 @@ export default function TurnSummaryScreen({ navigation }) {
             }
           }
           
+          // Create a unique battle ID for tracking animation state
+          // Include index to handle multiple battles between same combatants in one turn
+          const battleId = `turn${gameState.turn - 1}_${attackerName}_${defenderName}_${combats.length}`;
+          
           combats.push({ 
+            battleId,
             attackerName,
             defenderName, 
             attackerDice, 
@@ -181,25 +186,37 @@ export default function TurnSummaryScreen({ navigation }) {
       }
     }
     
-    setCombatEvents(combats);
+    // Filter out battles that have already been animated
+    // Use Set for O(1) lookups instead of array includes
+    const animatedBattlesSet = new Set(gameState.animatedBattles || []);
+    const unplayedCombats = combats.filter(combat => !animatedBattlesSet.has(combat.battleId));
+    
+    setCombatEvents(unplayedCombats);
     
     console.log('Combats found:', combats.length);
-    console.log('Combat details:', JSON.stringify(combats, null, 2));
+    console.log('Unplayed combats:', unplayedCombats.length);
+    console.log('Combat details:', JSON.stringify(unplayedCombats, null, 2));
     
     // Mark that we're about to play animations for this turn
     animationsPlayedForTurn.current = gameState.turn;
     
     // Start showing combat animations if any exist
-    if (combats.length > 0) {
+    if (unplayedCombats.length > 0) {
       setCurrentCombatIndex(0);
       // Show dice animation after a short delay
       setTimeout(() => {
         setDiceAnimationVisible(true);
       }, 500);
     }
-  }, [gameState.turn, gameState.eventLog.length]);
+  }, [gameState.turn, gameState.eventLog.length, gameState.animatedBattles]);
 
   const handleCombatComplete = () => {
+    // Mark current battle as animated so it won't replay
+    const currentCombat = combatEvents[currentCombatIndex];
+    if (currentCombat?.battleId) {
+      markBattleAnimated(currentCombat.battleId);
+    }
+    
     // Dice animation completes - hide it
     setDiceAnimationVisible(false);
     
