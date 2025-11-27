@@ -159,7 +159,8 @@ export default function TurnSummaryScreen({ navigation }) {
           }
           
           // Create a unique battle ID for tracking animation state
-          const battleId = `turn${gameState.turn - 1}_${attackerName}_${defenderName}`;
+          // Include index to handle multiple battles between same combatants in one turn
+          const battleId = `turn${gameState.turn - 1}_${attackerName}_${defenderName}_${combats.length}`;
           
           combats.push({ 
             battleId,
@@ -178,8 +179,9 @@ export default function TurnSummaryScreen({ navigation }) {
     }
     
     // Filter out battles that have already been animated
-    const animatedBattles = gameState.animatedBattles || [];
-    const unplayedCombats = combats.filter(combat => !animatedBattles.includes(combat.battleId));
+    // Use Set for O(1) lookups instead of array includes
+    const animatedBattlesSet = new Set(gameState.animatedBattles || []);
+    const unplayedCombats = combats.filter(combat => !animatedBattlesSet.has(combat.battleId));
     
     setCombatEvents(unplayedCombats);
     
