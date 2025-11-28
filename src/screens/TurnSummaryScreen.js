@@ -1,6 +1,6 @@
 //TurnSummaryScreen - shows turn resolution log
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, Animated, TouchableOpacity } from 'react-native';
 import { useGameEngine } from '../engine/gameEngine';
 import LogEntry from '../components/LogEntry';
@@ -10,12 +10,20 @@ import CombatLogEntry from '../components/CombatLogEntry';
 
 export default function TurnSummaryScreen({ navigation }) {
   const { gameState, saveGame, markTurnSummaryViewed } = useGameEngine();
+  
+  // Calculate initial preview state BEFORE first render to prevent flash
+  const initialShowPreview = useMemo(() => {
+    const mostRecentTurn = gameState.turn - 1;
+    const alreadyViewed = gameState.lastViewedTurnSummary === mostRecentTurn;
+    return !alreadyViewed; // Show preview only if we haven't viewed this turn yet
+  }, []);
+  
   const [diceAnimationVisible, setDiceAnimationVisible] = useState(false);
   const [currentCombatIndex, setCurrentCombatIndex] = useState(0);
   const [combatEvents, setCombatEvents] = useState([]);
   const [completedCombats, setCompletedCombats] = useState(new Set());
   const [viewingTurnNumber, setViewingTurnNumber] = useState(null);
-  const [showPreview, setShowPreview] = useState(false);
+  const [showPreview, setShowPreview] = useState(initialShowPreview);
   const scrollViewRef = useRef(null);
   const progressAnim = useRef(new Animated.Value(0)).current;
   const autoAdvanceTimeoutRef = useRef(null);
@@ -315,8 +323,9 @@ export default function TurnSummaryScreen({ navigation }) {
   const effectiveViewingTurn = viewingTurnNumber ?? (gameState.turn - 1);
   const currentTurnMarker = `Turn ${effectiveViewingTurn} Resolution`;
   let currentTurnStartIndex = -1;
+  let currentTurnEndIndex = -1;
   
-  // Find the start of the current turn
+  // Find the start of the current turn (search backwards for most recent occurrence)
   for (let i = gameState.eventLog.length - 1; i >= 0; i--) {
     if (gameState.eventLog[i].includes(currentTurnMarker)) {
       currentTurnStartIndex = i;
@@ -324,9 +333,24 @@ export default function TurnSummaryScreen({ navigation }) {
     }
   }
   
-  // Get only this turn's entries (or show a message if turn not found)
+  // Find the end of the current turn (next turn marker or end of log)
+  if (currentTurnStartIndex !== -1) {
+    const nextTurnMarker = `Turn ${effectiveViewingTurn + 1} Resolution`;
+    for (let i = currentTurnStartIndex + 1; i < gameState.eventLog.length; i++) {
+      if (gameState.eventLog[i].includes(nextTurnMarker)) {
+        currentTurnEndIndex = i;
+        break;
+      }
+    }
+    // If no next turn marker found, go to end of log
+    if (currentTurnEndIndex === -1) {
+      currentTurnEndIndex = gameState.eventLog.length;
+    }
+  }
+  
+  // Get only this turn's entries (between start and end markers)
   const currentTurnLog = currentTurnStartIndex !== -1 
-    ? gameState.eventLog.slice(currentTurnStartIndex)
+    ? gameState.eventLog.slice(currentTurnStartIndex, currentTurnEndIndex)
     : [];
   
   // Filter out the turn header and guidance messages
@@ -341,6 +365,12 @@ export default function TurnSummaryScreen({ navigation }) {
     if (entry.includes('When ready, end your turn')) return false;
     if (entry.trim().startsWith('•')) return false;
     if (entry.trim() === '') return false;
+    return true;
+  });
+  
+  // Separate check: filter out weather updates when determining if turn was quiet
+  const significantEvents = filteredLog.filter(entry => {
+    if (entry.includes('Weather:')) return false;
     return true;
   });
 
@@ -387,10 +417,6 @@ export default function TurnSummaryScreen({ navigation }) {
                 <Text style={styles.previewStatLabel}>
                   {combatEvents.length === 1 ? 'Battle' : 'Battles'}
                 </Text>
-              </View>
-              <View style={styles.previewStatItem}>
-                <Text style={styles.previewStatValue}>{filteredLog.length}</Text>
-                <Text style={styles.previewStatLabel}>Events</Text>
               </View>
             </View>
             <View style={styles.previewLoadingContainer}>
@@ -449,7 +475,10 @@ export default function TurnSummaryScreen({ navigation }) {
         </View>
       )}
 
-      <View style={styles.header}>
+      {/* Only show turn summary content when not showing preview */}
+      {!showPreview && (
+        <>
+          <View style={styles.header}>
         <View style={styles.turnNavigation}>
           <ActionButton
             title="◀ Previous"
@@ -494,10 +523,11 @@ export default function TurnSummaryScreen({ navigation }) {
         style={styles.logContainer} 
         contentContainerStyle={styles.logContent}
       >
-        {groupedLog.length === 0 ? (
+        {significantEvents.length === 0 ? (
           <View style={styles.emptyStateContainer}>
-            <Text style={styles.emptyStateText}>No significant events this turn</Text>
-            <Text style={styles.emptyStateSubtext}>Your forces maintained their positions</Text>
+            <Text style={styles.emptyStateEmoji}>🌙</Text>
+            <Text style={styles.emptyStateText}>All Quiet on the Eastern Front</Text>
+            <Text style={styles.emptyStateSubtext}>The troops enjoyed a rare peaceful night</Text>
           </View>
         ) : (
           groupedLog.map((item, index) => {
@@ -531,6 +561,8 @@ export default function TurnSummaryScreen({ navigation }) {
           variant="primary"
         />
       </View>
+        </>
+      )}
     </SafeAreaView>
   );
 }
@@ -719,6 +751,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 60,
+  },
+  emptyStateEmoji: {
+    fontSize: 48,
+    marginBottom: 16,
   },
   emptyStateText: {
     fontSize: 18,

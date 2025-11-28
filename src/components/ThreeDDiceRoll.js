@@ -571,6 +571,7 @@ export default function ThreeDDiceRoll({
                 outcome.includes('VICTORY') && styles.victoryText,
                 outcome.includes('DEFEAT') && styles.defeatText,
                 outcome.includes('STALEMATE') && styles.stalemateText,
+                outcome.includes('SETBACK') && styles.setbackText,
               ]}>
                 {outcome}
               </Text>
@@ -815,6 +816,9 @@ const styles = StyleSheet.create({
   },
   stalemateText: {
     color: '#f59e0b',
+  },
+  setbackText: {
+    color: '#ef4444',
   },
   closeButton: {
     marginTop: 10,
