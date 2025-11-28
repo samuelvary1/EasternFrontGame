@@ -1,7 +1,7 @@
-// TurnSummaryScreen - shows turn resolution log
+//TurnSummaryScreen - shows turn resolution log
 
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, Animated, TouchableOpacity } from 'react-native';
 import { useGameEngine } from '../engine/gameEngine';
 import LogEntry from '../components/LogEntry';
 import ActionButton from '../components/ActionButton';
@@ -9,29 +9,43 @@ import ThreeDDiceRoll from '../components/ThreeDDiceRoll';
 import CombatLogEntry from '../components/CombatLogEntry';
 
 export default function TurnSummaryScreen({ navigation }) {
-  const { gameState, saveGame } = useGameEngine();
+  const { gameState, saveGame, markTurnSummaryViewed } = useGameEngine();
   const [diceAnimationVisible, setDiceAnimationVisible] = useState(false);
   const [currentCombatIndex, setCurrentCombatIndex] = useState(0);
   const [combatEvents, setCombatEvents] = useState([]);
-  const scrollViewRef = React.useRef(null);
-  const animationsPlayedForTurn = React.useRef(null);
+  const [completedCombats, setCompletedCombats] = useState(new Set());
+  const [viewingTurnNumber, setViewingTurnNumber] = useState(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const scrollViewRef = useRef(null);
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const autoAdvanceTimeoutRef = useRef(null);
+  const previewOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    console.log('=== TurnSummaryScreen useEffect running ===');
-    console.log('Current turn:', gameState.turn);
-    console.log('Event log length:', gameState.eventLog.length);
-    console.log('Last 5 log entries:', gameState.eventLog.slice(-5));
-    console.log('Animations already played for turn:', animationsPlayedForTurn.current);
-    
-    // Check if we've already played animations for this turn
-    if (animationsPlayedForTurn.current === gameState.turn) {
-      console.log('Animations already played for this turn - skipping');
-      return;
+    // Initialize to most recent turn if not set (only runs once)
+    const mostRecentTurn = gameState.turn - 1;
+    if (viewingTurnNumber === null) {
+      setViewingTurnNumber(mostRecentTurn);
     }
+  }, [gameState.turn, viewingTurnNumber]);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (autoAdvanceTimeoutRef.current) {
+        clearTimeout(autoAdvanceTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Separate effect for parsing combat data and controlling animations
+  useEffect(() => {
+    if (viewingTurnNumber === null) return;
     
-    // Extract combat events from the CURRENT turn only
-    // The turn marker has a newline prefix, so search for the core text
-    const currentTurnMarker = `Turn ${gameState.turn - 1} Resolution`;
+    console.log('=== TurnSummaryScreen parsing combats for turn:', viewingTurnNumber);
+    
+    // Extract combat events from the VIEWING turn
+    const currentTurnMarker = `Turn ${viewingTurnNumber} Resolution`;
     
     // Find the LAST occurrence of the turn marker (most recent)
     let currentTurnStartIndex = -1;
@@ -186,20 +200,67 @@ export default function TurnSummaryScreen({ navigation }) {
     console.log('Combats found:', combats.length);
     console.log('Combat details:', JSON.stringify(combats, null, 2));
     
-    // Mark that we're about to play animations for this turn
-    animationsPlayedForTurn.current = gameState.turn;
+    // Check if this turn has already been viewed or if we're navigating to an old turn
+    const mostRecentTurn = gameState.turn - 1;
+    const isViewingOldTurn = viewingTurnNumber < mostRecentTurn;
+    const alreadyViewedThisTurn = gameState.lastViewedTurnSummary === viewingTurnNumber;
     
-    // Start showing combat animations if any exist
-    if (combats.length > 0) {
-      setCurrentCombatIndex(0);
-      // Show dice animation after a short delay
-      setTimeout(() => {
-        setDiceAnimationVisible(true);
-      }, 500);
+    // Only show preview and animations if:
+    // 1. This is the most recent turn AND
+    // 2. We haven't viewed it before
+    const shouldAnimate = viewingTurnNumber === mostRecentTurn && !alreadyViewedThisTurn;
+    
+    if (shouldAnimate) {
+      console.log('First time viewing current turn - showing preview and animations');
+      
+      // Mark that we're viewing this turn's summary
+      markTurnSummaryViewed(viewingTurnNumber);
+      
+      // Reset completed combats
+      setCompletedCombats(new Set());
+      
+      // Show preview of the turn summary first
+      setShowPreview(true);
+      progressAnim.setValue(0);
+      previewOpacity.setValue(1);
+      
+      // Start showing combat animations if any exist
+      if (combats.length > 0) {
+        setCurrentCombatIndex(0);
+        
+        // Animate progress bar but DON'T auto-advance
+        // User must click "Start Battles Now" button
+        Animated.timing(progressAnim, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: false,
+        }).start();
+      } else {
+        // No combats, auto-hide preview after showing stats
+        Animated.timing(progressAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: false,
+        }).start();
+        
+        autoAdvanceTimeoutRef.current = setTimeout(() => {
+          setShowPreview(false);
+        }, 1000);
+      }
+    } else {
+      // Already viewed or viewing old turn - show everything immediately, no animations
+      console.log('Already viewed or old turn - showing all results immediately');
+      setShowPreview(false);
+      setDiceAnimationVisible(false);
+      const allCompleted = new Set(combats.map((_, idx) => idx));
+      setCompletedCombats(allCompleted);
     }
-  }, [gameState.turn, gameState.eventLog.length]);
+  }, [viewingTurnNumber, markTurnSummaryViewed, progressAnim]);
 
   const handleCombatComplete = () => {
+    // Mark this combat as completed so we can show its results
+    setCompletedCombats(prev => new Set([...prev, currentCombatIndex]));
+    
     // Dice animation completes - hide it
     setDiceAnimationVisible(false);
     
@@ -217,6 +278,27 @@ export default function TurnSummaryScreen({ navigation }) {
     }
   };
 
+  const handleSkipPreview = () => {
+    // Clear any pending auto-advance timeouts
+    if (autoAdvanceTimeoutRef.current) {
+      clearTimeout(autoAdvanceTimeoutRef.current);
+      autoAdvanceTimeoutRef.current = null;
+    }
+    
+    // Start animation IMMEDIATELY so it's behind the fading preview
+    setDiceAnimationVisible(true);
+    
+    // Then fade out preview on top of it
+    Animated.timing(previewOpacity, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      // After fade completes, hide preview
+      setShowPreview(false);
+    });
+  };
+
   const handleContinue = async () => {
     await saveGame();
     
@@ -227,13 +309,45 @@ export default function TurnSummaryScreen({ navigation }) {
     }
   };
 
-  const recentLog = gameState.eventLog.slice(-50).reverse();
   const currentCombat = combatEvents[currentCombatIndex];
+
+  // Extract only the VIEWING turn's log entries
+  const effectiveViewingTurn = viewingTurnNumber ?? (gameState.turn - 1);
+  const currentTurnMarker = `Turn ${effectiveViewingTurn} Resolution`;
+  let currentTurnStartIndex = -1;
+  
+  // Find the start of the current turn
+  for (let i = gameState.eventLog.length - 1; i >= 0; i--) {
+    if (gameState.eventLog[i].includes(currentTurnMarker)) {
+      currentTurnStartIndex = i;
+      break;
+    }
+  }
+  
+  // Get only this turn's entries (or show a message if turn not found)
+  const currentTurnLog = currentTurnStartIndex !== -1 
+    ? gameState.eventLog.slice(currentTurnStartIndex)
+    : [];
+  
+  // Filter out the turn header and guidance messages
+  const filteredLog = currentTurnLog.filter(entry => {
+    // Skip turn resolution header
+    if (entry.includes('=== Turn') && entry.includes('Resolution ===')) return false;
+    // Skip guidance messages from turn 0/1
+    if (entry.includes('FIRST TURN GUIDANCE')) return false;
+    if (entry.includes('Campaign begins')) return false;
+    if (entry.includes('Check the MAP')) return false;
+    if (entry.includes('Review your brigades')) return false;
+    if (entry.includes('When ready, end your turn')) return false;
+    if (entry.trim().startsWith('•')) return false;
+    if (entry.trim() === '') return false;
+    return true;
+  });
 
   // Group log entries into combat sections and regular entries
   const groupedLog = [];
   let i = 0;
-  const forwardLog = [...recentLog].reverse(); // Process in chronological order for grouping
+  const forwardLog = filteredLog; // Already in chronological order
   
   while (i < forwardLog.length) {
     const entry = forwardLog[i];
@@ -257,28 +371,61 @@ export default function TurnSummaryScreen({ navigation }) {
     }
   }
   
-  // Sort by importance (highest priority first)
-  const getPriority = (item) => {
-    if (item.type === 'combat') return 1; // Combat results - highest priority
-    
-    const msg = item.message || '';
-    if (msg.includes('VICTORY') || msg.includes('DEFEAT')) return 0; // Game outcome - absolute top
-    if (msg.includes('[EVENT]')) return 2; // Events
-    if (msg.includes('is now under')) return 3; // Territory changes
-    if (msg.includes('[PLAYER]')) return 4; // Player actions
-    if (msg.includes('[ENEMY]')) return 5; // Enemy actions
-    if (msg.includes('Weather:')) return 7; // Weather
-    if (msg.startsWith('===')) return 8; // Turn headers
-    return 6; // Everything else
-  };
-  
-  groupedLog.sort((a, b) => getPriority(a) - getPriority(b));
+  // Keep events in chronological order (no sorting)
+  // This makes it easier to follow what happened during the turn
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Preview overlay - shows briefly before animations */}
+      {showPreview && combatEvents.length > 0 && (
+        <Animated.View style={[styles.previewOverlay, { opacity: previewOpacity }]}>
+          <View style={styles.previewContent}>
+            <Text style={styles.previewTitle}>Turn {effectiveViewingTurn} Complete</Text>
+            <View style={styles.previewStats}>
+              <View style={styles.previewStatItem}>
+                <Text style={styles.previewStatValue}>{combatEvents.length}</Text>
+                <Text style={styles.previewStatLabel}>
+                  {combatEvents.length === 1 ? 'Battle' : 'Battles'}
+                </Text>
+              </View>
+              <View style={styles.previewStatItem}>
+                <Text style={styles.previewStatValue}>{filteredLog.length}</Text>
+                <Text style={styles.previewStatLabel}>Events</Text>
+              </View>
+            </View>
+            <View style={styles.previewLoadingContainer}>
+              <View style={styles.previewLoadingBar}>
+                <Animated.View 
+                  style={[
+                    styles.previewLoadingFill,
+                    {
+                      width: progressAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0%', '100%'],
+                      }),
+                    },
+                  ]} 
+                />
+              </View>
+              <Text style={styles.previewLoadingText}>Preparing battle animations...</Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.previewSkipButton}
+              onPress={handleSkipPreview}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.previewSkipButtonText}>Start Battles Now ▶</Text>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      )}
+
       {diceAnimationVisible && (
         <View style={styles.combatContainer}>
           <View style={styles.combatHeader}>
+            <Text style={styles.battleCounter}>
+              Battle {currentCombatIndex + 1} of {combatEvents.length}
+            </Text>
             <Text style={styles.combatTitle}>
               {currentCombat?.attackerName || 'Attacker'} vs {currentCombat?.defenderName || 'Defender'}
             </Text>
@@ -303,7 +450,38 @@ export default function TurnSummaryScreen({ navigation }) {
       )}
 
       <View style={styles.header}>
-        <Text style={styles.title}>Turn {gameState.turn - 1} Summary</Text>
+        <View style={styles.turnNavigation}>
+          <ActionButton
+            title="◀ Previous"
+            onPress={() => {
+              if (effectiveViewingTurn > 1) {
+                setViewingTurnNumber(effectiveViewingTurn - 1);
+                setDiceAnimationVisible(false);
+              }
+            }}
+            variant="secondary"
+            disabled={effectiveViewingTurn <= 1}
+            style={styles.navButton}
+          />
+          <View style={styles.turnInfo}>
+            <Text style={styles.title}>Turn {effectiveViewingTurn}</Text>
+            {effectiveViewingTurn === gameState.turn - 1 && (
+              <Text style={styles.currentTurnBadge}>Current</Text>
+            )}
+          </View>
+          <ActionButton
+            title="Next ▶"
+            onPress={() => {
+              if (effectiveViewingTurn < gameState.turn - 1) {
+                setViewingTurnNumber(effectiveViewingTurn + 1);
+                setDiceAnimationVisible(false);
+              }
+            }}
+            variant="secondary"
+            disabled={effectiveViewingTurn >= gameState.turn - 1}
+            style={styles.navButton}
+          />
+        </View>
         {gameState.gameOver && (
           <Text style={[styles.gameOverText, { color: gameState.victory ? '#10b981' : '#ef4444' }]}>
             {gameState.victory ? 'VICTORY!' : 'DEFEAT'}
@@ -316,13 +494,34 @@ export default function TurnSummaryScreen({ navigation }) {
         style={styles.logContainer} 
         contentContainerStyle={styles.logContent}
       >
-        {groupedLog.map((item, index) => {
-          if (item.type === 'combat') {
-            return <CombatLogEntry key={`combat-${index}`} messages={item.messages} />;
-          } else {
-            return <LogEntry key={`log-${index}`} message={item.message} index={index} />;
-          }
-        })}
+        {groupedLog.length === 0 ? (
+          <View style={styles.emptyStateContainer}>
+            <Text style={styles.emptyStateText}>No significant events this turn</Text>
+            <Text style={styles.emptyStateSubtext}>Your forces maintained their positions</Text>
+          </View>
+        ) : (
+          groupedLog.map((item, index) => {
+            if (item.type === 'combat') {
+              // Find which combat this is (match by messages)
+              const combatIndex = combatEvents.findIndex(c => 
+                item.messages.some(msg => 
+                  msg.includes(c.attackerName) && msg.includes(c.defenderName)
+                )
+              );
+              
+              // Only show combat results if animation has completed or no animations exist
+              const shouldShow = combatEvents.length === 0 || completedCombats.has(combatIndex);
+              
+              if (!shouldShow) {
+                return null; // Hide combat results until animation completes
+              }
+              
+              return <CombatLogEntry key={`combat-${index}`} messages={item.messages} />;
+            } else {
+              return <LogEntry key={`log-${index}`} message={item.message} index={index} />;
+            }
+          })
+        )}
       </ScrollView>
 
       <View style={styles.footer}>
@@ -341,6 +540,101 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#111827',
   },
+  previewOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#111827',
+    zIndex: 1001,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  previewContent: {
+    backgroundColor: '#1f2937',
+    borderRadius: 16,
+    padding: 32,
+    width: '85%',
+    maxWidth: 400,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#3b82f6',
+    shadowColor: '#3b82f6',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  previewTitle: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#60a5fa',
+    marginBottom: 24,
+    textAlign: 'center',
+    letterSpacing: 1,
+  },
+  previewStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    marginBottom: 24,
+  },
+  previewStatItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  previewStatValue: {
+    fontSize: 36,
+    fontWeight: '900',
+    color: '#fbbf24',
+    marginBottom: 4,
+  },
+  previewStatLabel: {
+    fontSize: 14,
+    color: '#9ca3af',
+    fontWeight: '600',
+  },
+  previewLoadingContainer: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  previewLoadingBar: {
+    width: '100%',
+    height: 4,
+    backgroundColor: '#374151',
+    borderRadius: 2,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  previewLoadingFill: {
+    height: '100%',
+    backgroundColor: '#3b82f6',
+    borderRadius: 2,
+  },
+  previewLoadingText: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontStyle: 'italic',
+  },
+  previewSkipButton: {
+    marginTop: 20,
+    backgroundColor: '#3b82f6',
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 8,
+    shadowColor: '#3b82f6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  previewSkipButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
   combatContainer: {
     position: 'absolute',
     top: 0,
@@ -355,6 +649,14 @@ const styles = StyleSheet.create({
     padding: 16,
     borderBottomWidth: 2,
     borderBottomColor: '#60a5fa',
+  },
+  battleCounter: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fbbf24',
+    textAlign: 'center',
+    marginBottom: 8,
+    letterSpacing: 1,
   },
   combatTitle: {
     fontSize: 20,
@@ -371,11 +673,35 @@ const styles = StyleSheet.create({
     borderBottomColor: '#374151',
     backgroundColor: '#1f2937',
   },
+  turnNavigation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  navButton: {
+    minWidth: 100,
+  },
+  turnInfo: {
+    alignItems: 'center',
+    flex: 1,
+    marginHorizontal: 10,
+  },
   title: {
     fontSize: 24,
     fontWeight: '700',
     color: '#f3f4f6',
     marginBottom: 5,
+  },
+  currentTurnBadge: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#10b981',
+    backgroundColor: '#065f46',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginTop: 4,
   },
   gameOverText: {
     fontSize: 20,
@@ -387,6 +713,22 @@ const styles = StyleSheet.create({
   },
   logContent: {
     padding: 10,
+  },
+  emptyStateContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  emptyStateText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#9ca3af',
+    marginBottom: 8,
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: '#6b7280',
   },
   footer: {
     padding: 20,

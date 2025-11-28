@@ -1,17 +1,24 @@
 // FloatingEndTurnButton - A floating button to end turn from any screen
 
-import React from 'react';
-import { TouchableOpacity, Text, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useGameEngine } from '../engine/gameEngine';
 
 export default function FloatingEndTurnButton() {
   const navigation = useNavigation();
   const { endTurn } = useGameEngine();
+  const [processing, setProcessing] = useState(false);
 
   const handleEndTurn = () => {
-    endTurn();
-    navigation.navigate('TurnSummary');
+    setProcessing(true);
+    
+    // Small delay to show processing state
+    setTimeout(() => {
+      endTurn();
+      setProcessing(false);
+      navigation.navigate('TurnSummary');
+    }, 300);
   };
 
   return (
@@ -19,8 +26,13 @@ export default function FloatingEndTurnButton() {
       style={styles.button} 
       onPress={handleEndTurn}
       activeOpacity={0.8}
+      disabled={processing}
     >
-      <Text style={styles.buttonText}>End{'\n'}Turn</Text>
+      {processing ? (
+        <ActivityIndicator color="#ffffff" size="small" />
+      ) : (
+        <Text style={styles.buttonText}>End{'\n'}Turn</Text>
+      )}
     </TouchableOpacity>
   );
 }

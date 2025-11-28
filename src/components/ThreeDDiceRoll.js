@@ -1,7 +1,7 @@
 // ThreeDDiceRoll component - 3D dice rolling animation using Three.js
 
 import React, { useRef, useEffect, useState } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity, Animated } from 'react-native';
 import { WebView } from 'react-native-webview';
 
 // Helper function to get die emoji based on value
@@ -37,22 +37,32 @@ export default function ThreeDDiceRoll({
   const [stage, setStage] = useState('rolling'); // rolling -> showing -> comparing -> complete
   const [currentComparison, setCurrentComparison] = useState(0);
   const webViewRef = useRef(null);
+  const diceOpacity = useRef(new Animated.Value(0)).current;
+  const resultsOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (!visible) {
       setStage('rolling');
       setCurrentComparison(0);
+      diceOpacity.setValue(0);
+      resultsOpacity.setValue(0);
       return;
     }
 
     // Stage timing
     setTimeout(() => {
       setStage('showing');
+      // Fade in dice when showing stage begins
+      Animated.timing(diceOpacity, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }).start();
       setTimeout(() => {
         setStage('comparing');
       }, 1500);
     }, 3000); // 3 seconds for dice to roll and settle
-  }, [visible]);
+  }, [visible, diceOpacity]);
 
   useEffect(() => {
     if (stage === 'comparing' && currentComparison < comparisons.length) {
@@ -63,10 +73,15 @@ export default function ThreeDDiceRoll({
     } else if (stage === 'comparing' && currentComparison >= comparisons.length) {
       setTimeout(() => {
         setStage('complete');
-        // Don't auto-complete - wait for user to close
+        // Fade in results when complete
+        Animated.timing(resultsOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }).start();
       }, 1500);
     }
-  }, [stage, currentComparison, comparisons.length]);
+  }, [stage, currentComparison, comparisons.length, resultsOpacity]);
 
   const htmlContent = `
 <!DOCTYPE html>
@@ -495,29 +510,25 @@ export default function ThreeDDiceRoll({
         <View style={styles.legendRow}>
           <View style={styles.legendCol}>
             <Text style={styles.legendTitle}>Your Dice (sorted):</Text>
-            {(stage === 'showing' || stage === 'comparing' || stage === 'complete') && (
-              <View style={styles.diceDisplayRow}>
-                {attackerDice.map((val, i) => (
-                  <View key={i} style={styles.diceItem}>
-                    <Text style={styles.dieEmoji}>{getDieEmoji(val, 'blue')}</Text>
-                    <Text style={styles.dieValueText}>{val}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
+            <Animated.View style={[styles.diceDisplayRow, { opacity: diceOpacity }]}>
+              {attackerDice.map((val, i) => (
+                <View key={i} style={styles.diceItem}>
+                  <Text style={styles.dieEmoji}>{getDieEmoji(val, 'blue')}</Text>
+                  <Text style={styles.dieValueText}>{val}</Text>
+                </View>
+              ))}
+            </Animated.View>
           </View>
           <View style={styles.legendCol}>
             <Text style={styles.legendTitle}>Enemy Dice (sorted):</Text>
-            {(stage === 'showing' || stage === 'comparing' || stage === 'complete') && (
-              <View style={styles.diceDisplayRow}>
-                {defenderDice.map((val, i) => (
-                  <View key={i} style={styles.diceItem}>
-                    <Text style={styles.dieEmoji}>{getDieEmoji(val, 'red')}</Text>
-                    <Text style={styles.dieValueText}>{val}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
+            <Animated.View style={[styles.diceDisplayRow, { opacity: diceOpacity }]}>
+              {defenderDice.map((val, i) => (
+                <View key={i} style={styles.diceItem}>
+                  <Text style={styles.dieEmoji}>{getDieEmoji(val, 'red')}</Text>
+                  <Text style={styles.dieValueText}>{val}</Text>
+                </View>
+              ))}
+            </Animated.View>
           </View>
         </View>
 
@@ -551,44 +562,47 @@ export default function ThreeDDiceRoll({
           </View>
         )}
 
-        {(stage === 'comparing' || stage === 'complete') && outcome && (
+        {/* Always show results container but fade in content */}
+        {outcome && (
           <View style={styles.outcomeContainer}>
-            <Text style={[
-              styles.outcomeText,
-              outcome.includes('VICTORY') && styles.victoryText,
-              outcome.includes('DEFEAT') && styles.defeatText,
-              outcome.includes('STALEMATE') && styles.stalemateText,
-            ]}>
-              {outcome}
-            </Text>
-            
-            {combatResults && (
-              <View style={styles.resultsBox}>
-                <Text style={styles.resultsTitle}>Combat Impact</Text>
-                <View style={styles.resultsRow}>
-                  <View style={styles.resultCol}>
-                    <Text style={styles.resultLabel}>Your Losses</Text>
-                    <Text style={[styles.resultValue, styles.lossText]}>-{combatResults.attackerLosses} Strength</Text>
-                    <Text style={[styles.resultValue, combatResults.moraleChange >= 0 ? styles.gainText : styles.lossText]}>
-                      {combatResults.moraleChange >= 0 ? '+' : ''}{combatResults.moraleChange} Morale
-                    </Text>
-                  </View>
-                  <View style={styles.resultCol}>
-                    <Text style={styles.resultLabel}>Enemy Losses</Text>
-                    <Text style={[styles.resultValue, styles.gainText]}>-{combatResults.defenderLosses} Strength</Text>
+            <Animated.View style={{ opacity: resultsOpacity }}>
+              <Text style={[
+                styles.outcomeText,
+                outcome.includes('VICTORY') && styles.victoryText,
+                outcome.includes('DEFEAT') && styles.defeatText,
+                outcome.includes('STALEMATE') && styles.stalemateText,
+              ]}>
+                {outcome}
+              </Text>
+              
+              {combatResults && (
+                <View style={styles.resultsBox}>
+                  <Text style={styles.resultsTitle}>Combat Impact</Text>
+                  <View style={styles.resultsRow}>
+                    <View style={styles.resultCol}>
+                      <Text style={styles.resultLabel}>Your Losses</Text>
+                      <Text style={[styles.resultValue, styles.lossText]}>-{combatResults.attackerLosses} Strength</Text>
+                      <Text style={[styles.resultValue, combatResults.moraleChange >= 0 ? styles.gainText : styles.lossText]}>
+                        {combatResults.moraleChange >= 0 ? '+' : ''}{combatResults.moraleChange} Morale
+                      </Text>
+                    </View>
+                    <View style={styles.resultCol}>
+                      <Text style={styles.resultLabel}>Enemy Losses</Text>
+                      <Text style={[styles.resultValue, styles.gainText]}>-{combatResults.defenderLosses} Strength</Text>
+                    </View>
                   </View>
                 </View>
-              </View>
-            )}
-            
-            <TouchableOpacity 
-              style={styles.closeButton} 
-              onPress={() => {
-                if (onComplete) onComplete();
-              }}
-            >
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
+              )}
+              
+              <TouchableOpacity 
+                style={styles.closeButton} 
+                onPress={() => {
+                  if (onComplete) onComplete();
+                }}
+              >
+                <Text style={styles.closeButtonText}>Close</Text>
+              </TouchableOpacity>
+            </Animated.View>
           </View>
         )}
       </View>
@@ -711,12 +725,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dieEmoji: {
-    fontSize: 36,
+    fontSize: 48,
     marginBottom: 2,
     color: '#ffffff',
   },
   dieValueText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '700',
     color: '#fbbf24',
   },

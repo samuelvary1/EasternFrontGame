@@ -43,6 +43,7 @@ export function GameEngineProvider({ children }) {
     victory: false,
     difficulty: DEFAULT_DIFFICULTY,
     playerFaction: 'ukraine',
+    lastViewedTurnSummary: null, // Track which turn summary was last viewed to prevent replay
   });
 
   const startNewGame = useCallback((difficulty = DEFAULT_DIFFICULTY, playerFaction = 'ukraine') => {
@@ -94,6 +95,7 @@ export function GameEngineProvider({ children }) {
       victory: false,
       difficulty,
       playerFaction,
+      lastViewedTurnSummary: null,
     });
   }, []);
 
@@ -140,7 +142,11 @@ export function GameEngineProvider({ children }) {
   const endTurn = useCallback(() => {
     setGameState(prev => {
       const turnLog = [];
-      let { brigades, regions, weather, turn } = prev;
+      // Deep copy brigades and regions to avoid mutating previous state
+      let brigades = JSON.parse(JSON.stringify(prev.brigades));
+      let regions = JSON.parse(JSON.stringify(prev.regions));
+      let weather = prev.weather;
+      let turn = prev.turn;
 
       turnLog.push(`\n=== Turn ${turn} Resolution ===`);
 
@@ -322,6 +328,13 @@ export function GameEngineProvider({ children }) {
     }, 100);
   }, [saveGame]);
 
+  const markTurnSummaryViewed = useCallback((turn) => {
+    setGameState(prev => ({
+      ...prev,
+      lastViewedTurnSummary: turn,
+    }));
+  }, []);
+
   const value = {
     gameState,
     startNewGame,
@@ -331,6 +344,7 @@ export function GameEngineProvider({ children }) {
     clearOrders,
     cancelOrder,
     endTurn,
+    markTurnSummaryViewed,
   };
 
   return (
