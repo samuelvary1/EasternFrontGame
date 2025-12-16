@@ -1,7 +1,8 @@
 // Mission Control - Central hub for navigating game functions
 
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGameEngine } from '../engine/gameEngine';
 import { useLanguage } from '../context/LanguageContext';
 import ActionButton from '../components/ActionButton';
